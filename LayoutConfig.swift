@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 @MainActor
 final class LayoutConfig: ObservableObject {
@@ -78,4 +79,3 @@ final class LayoutConfig: ObservableObject {
     // Helpers to get scaled values
     func s(_ v: CGFloat) -> CGFloat { v * uiScale }
 }
-

@@ -2,11 +2,12 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject var game: GameState
+    @EnvironmentObject var cfg: LayoutConfig
 
     var body: some View {
         GeometryReader { proxy in
             let availableWidth = proxy.size.width
-            let layout = LayoutMetrics(availableWidth: availableWidth)
+            let layout = LayoutMetrics(availableWidth: availableWidth, cfg: cfg)
 
             ZStack {
                 // Board layer
@@ -79,9 +80,9 @@ struct ContentView: View {
             }
             .disabled(!(game.phase == .inRound && game.passAvailable && game.currentCard != nil))
 
-            // Timer bar
+            // Timer bar (height from config)
             timerBar
-                .frame(height: 24)
+                .frame(height: cfg.s(cfg.hud.timerBarHeight))
                 .frame(maxWidth: .infinity)
 
             // High score chip (best overall)
@@ -96,7 +97,7 @@ struct ContentView: View {
             let progress = max(0, min(1, Double(game.timerValue) / Double(game.timerMax)))
             let fillWidth = CGFloat(progress) * w
             let corner = h / 2
-            let badgeOverlap = h * 0.65
+            let badgeOverlap = h * cfg.hud.timerBadgeOverlapRatio
 
             ZStack(alignment: .leading) {
                 // Track
@@ -104,7 +105,7 @@ struct ContentView: View {
                     .fill(Color.black.opacity(0.9))
                     .overlay(
                         RoundedRectangle(cornerRadius: corner)
-                            .stroke(Color.gray.opacity(0.55), lineWidth: 2)
+                            .stroke(Color.gray.opacity(0.55), lineWidth: cfg.s(cfg.hud.timerTrackStroke))
                     )
                     .clipShape(RoundedRectangle(cornerRadius: corner))
 
@@ -118,16 +119,16 @@ struct ContentView: View {
                 HStack {
                     Spacer(minLength: 0)
                     Text("\(max(0, game.timerValue))")
-                        .font(.system(size: h * 0.7, weight: .bold, design: .rounded))
+                        .font(.system(size: h * cfg.hud.timerValueFontRatio, weight: .bold, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(.white.opacity(0.96))
-                        .padding(.horizontal, h * 0.6)
-                        .padding(.vertical, h * 0.18)
+                        .padding(.horizontal, h * cfg.hud.timerValuePillHPadRatio)
+                        .padding(.vertical, h * cfg.hud.timerValuePillVPadRatio)
                         .background(
                             Capsule().fill(Color.black.opacity(0.92))
                                 .overlay(Capsule().stroke(Color.white.opacity(0.15), lineWidth: 1))
                         )
-                        .padding(.trailing, h * 0.25)
+                        .padding(.trailing, h * cfg.hud.timerValuePillTrailingRatio)
                 }
 
                 // Clock badge overlapping left
@@ -140,7 +141,7 @@ struct ContentView: View {
                         .foregroundStyle(Color.black.opacity(0.88))
                         .font(.system(size: h * 0.78))
                 }
-                .frame(width: h * 1.45, height: h * 1.45)
+                .frame(width: h * cfg.hud.timerBadgeScale, height: h * cfg.hud.timerBadgeScale)
                 .offset(x: -badgeOverlap)
             }
         }
@@ -238,7 +239,7 @@ struct ContentView: View {
         .monospacedDigit()
     }
 
-    // MARK: - Columns Area (single horizontal ScrollView with aligned chip/column/pill)
+    // MARK: - Columns Area
     private func columnsArea(layout: LayoutMetrics) -> some View {
         let W = layout.cardWidth
         let H = layout.cardHeight
@@ -259,7 +260,7 @@ struct ContentView: View {
                         HexTab()
                             .fill(Color.blue.opacity(0.9))
                             .overlay(HexTab().stroke(Color(.sRGB, white: 0, opacity: 0.25), lineWidth: 1))
-                            .frame(width: max(54, W * 0.62), height: 26)
+                            .frame(width: max(cfg.columns.hexTabMinWidth, W * 0.62), height: cfg.columns.hexTabHeight)
                             .overlay(
                                 Text("\(col.total)")
                                     .font(.system(.subheadline, design: .rounded).weight(.bold))
@@ -269,8 +270,8 @@ struct ContentView: View {
 
                         // Column
                         ZStack(alignment: .top) {
-                            RoundedRectangle(cornerRadius: 8)
-                                .strokeBorder(Color(.sRGB, white: 0, opacity: 0.18), lineWidth: 1)
+                            RoundedRectangle(cornerRadius: cfg.columns.columnCornerRadius)
+                                .strokeBorder(Color(.sRGB, white: 0, opacity: cfg.columns.columnStrokeOpacity), lineWidth: 1)
 
                             VStack(spacing: 0) {
                                 Spacer(minLength: columnPadding)
@@ -302,7 +303,7 @@ struct ContentView: View {
                                     .padding(.horizontal, 4)
                                     .padding(.vertical, 2)
                                     .background(.thinMaterial, in: Capsule())
-                                    .offset(y: -14)
+                                    .offset(y: cfg.columns.softLabelYOffset)
                                     .zIndex(1)
                             }
                         }
@@ -320,7 +321,6 @@ struct ContentView: View {
                 }
             }
             .padding(.horizontal, 2)
-            // Center-only top inset: moves hex tabs + columns + bottom pills down
             .padding(.top, layout.columnsTopInset)
         }
     }
@@ -340,14 +340,14 @@ struct ContentView: View {
         }
         return Text(text)
             .font(.caption.weight(.semibold))
-            .padding(.horizontal, 8).padding(.vertical, 5)
+            .padding(.horizontal, cfg.columns.bottomPillHPad).padding(.vertical, cfg.columns.bottomPillVPad)
             .background(Capsule().fill(color.opacity(0.28)))
     }
 
     // MARK: - Right Sidebar
     private func rightSidebar(layout: LayoutMetrics) -> some View {
         VStack(alignment: .trailing, spacing: 10) {
-            topThreeScores // now shows current game's round scores
+            topThreeScores
             compactTotalBox(layout: layout)
             Button {
                 game.takeScore()
@@ -485,38 +485,33 @@ struct ContentView: View {
     }
 }
 
-// MARK: - Layout Metrics (denser to fit all five columns on iPhone landscape)
+// MARK: - Layout Metrics driven by LayoutConfig
 private struct LayoutMetrics {
-    // Input
     let availableWidth: CGFloat
+    let cfg: LayoutConfig
 
-    // Tunables (dense)
-    let minCardWidth: CGFloat = 64
-    let maxCardWidth: CGFloat = 160
-    let interColumnSpacing: CGFloat = 4
-    let mainHStackSpacing: CGFloat = 8
-    let outerHPad: CGFloat = 8
-    let outerVPad: CGFloat = 6
-    let minColumnChrome: CGFloat = 12
-    let columnPaddingFraction: CGFloat = 0.12
-    let overlapFraction: CGFloat = 0.32
+    // Derived from config
+    var minCardWidth: CGFloat { cfg.s(cfg.cards.minWidth) }
+    var maxCardWidth: CGFloat { cfg.s(cfg.cards.maxWidth) }
+    var interColumnSpacing: CGFloat { cfg.s(cfg.columns.interColumnSpacing) }
+    var mainHStackSpacing: CGFloat { cfg.s(cfg.panes.mainHStackSpacing) }
+    var outerHPad: CGFloat { cfg.s(cfg.hud.outerHPad) }
+    var outerVPad: CGFloat { cfg.s(cfg.hud.outerVPad) }
+    var minColumnChrome: CGFloat { cfg.s(cfg.columns.minColumnChrome) }
+    var columnPaddingFraction: CGFloat { cfg.columns.columnPaddingFraction } // already a fraction
+    var overlapFraction: CGFloat { cfg.columns.overlapFraction }
+    var columnsTopInset: CGFloat { cfg.s(cfg.columns.columnsTopInset) }
 
-    // Center-only inset for the columns area
-    let columnsTopInset: CGFloat = 30
+    var leftPaneMinWidth: CGFloat { cfg.s(cfg.panes.leftPaneMinWidth) }
+    var leftPaneMaxWidth: CGFloat { cfg.s(cfg.panes.leftPaneMaxWidth) }
+    var rightPaneMinWidth: CGFloat { cfg.s(cfg.panes.rightPaneMinWidth) }
+    var rightPaneMaxWidth: CGFloat { cfg.s(cfg.panes.rightPaneMaxWidth) }
 
-    // Side pane sizing (narrower — shrunk to free room for cards)
-    let leftPaneMinWidth: CGFloat = 120
-    let leftPaneMaxWidth: CGFloat = 132
-    let rightPaneMinWidth: CGFloat = 136
-    let rightPaneMaxWidth: CGFloat = 148
+    var hudReserveHeight: CGFloat { cfg.s(cfg.hud.hudReserveHeight) }
 
-    // HUD reserve (slightly tighter)
-    let hudReserveHeight: CGFloat = 40
-
-    // Derived
+    // Adaptive card width computation (same approach, using config)
     var cardWidth: CGFloat {
         let budget = max(availableWidth - (outerHPad * 2), 320)
-
         var w = clamp((minCardWidth + maxCardWidth) / 2, minCardWidth, maxCardWidth)
 
         // First pass
@@ -536,7 +531,7 @@ private struct LayoutMetrics {
         return w
     }
 
-    var cardHeight: CGFloat { cardWidth * 1.4 }
+    var cardHeight: CGFloat { cardWidth * cfg.cards.aspect }
     var columnPadding: CGFloat { max(8, cardWidth * columnPaddingFraction) }
 
     private func clamp(_ x: CGFloat, _ a: CGFloat, _ b: CGFloat) -> CGFloat {
@@ -544,7 +539,6 @@ private struct LayoutMetrics {
     }
 }
 
-// MARK: - HexTab shape used by the column total chip
 private struct HexTab: Shape {
     func path(in rect: CGRect) -> Path {
         let h = rect.height
@@ -561,7 +555,7 @@ private struct HexTab: Shape {
     }
 }
 
-// HighScoresView kept unchanged
+// HighScoresView unchanged
 struct HighScoresView: View {
     let entries: [HighScoreEntry]
     private let dateFormatter: DateFormatter = {
@@ -591,3 +585,4 @@ struct HighScoresView: View {
         }
     }
 }
+
