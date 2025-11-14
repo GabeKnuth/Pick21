@@ -6,8 +6,21 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		008CADD72EC558BA001BA388 /* Pick21SolitaireApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 008CADD62EC558BA001BA388 /* Pick21SolitaireApp.swift */; };
+		008CADD92EC558C1001BA388 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 008CADD82EC558C1001BA388 /* Models.swift */; };
+		008CADDB2EC558C9001BA388 /* GameState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 008CADDA2EC558C9001BA388 /* GameState.swift */; };
+		008CADDD2EC558D9001BA388 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 008CADDC2EC558D9001BA388 /* ContentView.swift */; };
+		008CADDF2EC55D5D001BA388 /* CardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 008CADDE2EC55D5D001BA388 /* CardView.swift */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		008CADC82EC55881001BA388 /* Pick 21 Solitaire.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Pick 21 Solitaire.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		008CADD62EC558BA001BA388 /* Pick21SolitaireApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pick21SolitaireApp.swift; sourceTree = "<group>"; };
+		008CADD82EC558C1001BA388 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		008CADDA2EC558C9001BA388 /* GameState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameState.swift; sourceTree = "<group>"; };
+		008CADDC2EC558D9001BA388 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		008CADDE2EC55D5D001BA388 /* CardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -34,6 +47,11 @@
 			children = (
 				008CADCA2EC55881001BA388 /* Pick 21 Solitaire */,
 				008CADC92EC55881001BA388 /* Products */,
+				008CADD62EC558BA001BA388 /* Pick21SolitaireApp.swift */,
+				008CADD82EC558C1001BA388 /* Models.swift */,
+				008CADDA2EC558C9001BA388 /* GameState.swift */,
+				008CADDC2EC558D9001BA388 /* ContentView.swift */,
+				008CADDE2EC55D5D001BA388 /* CardView.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -119,6 +137,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				008CADDB2EC558C9001BA388 /* GameState.swift in Sources */,
+				008CADD72EC558BA001BA388 /* Pick21SolitaireApp.swift in Sources */,
+				008CADDD2EC558D9001BA388 /* ContentView.swift in Sources */,
+				008CADD92EC558C1001BA388 /* Models.swift in Sources */,
+				008CADDF2EC55D5D001BA388 /* CardView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -246,6 +269,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = HGHAK37NB7;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
@@ -288,6 +312,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = HGHAK37NB7;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
