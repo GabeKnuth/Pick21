@@ -4,37 +4,63 @@ struct ContentView: View {
     @EnvironmentObject var game: GameState
     @EnvironmentObject var cfg: LayoutConfig
 
+    // Fixed zone sizes (points) as specified (landscape, notch on the left)
+    private let mgzSize = CGSize(width: 782, height: 393) // W x H when device is landscape-left; spec lists 393 x 782; we’ll place using orientation-aware axes
+    private let mgzOffsetFromLeft: CGFloat = 55
+
+    private let lzSize = CGSize(width: 135, height: 393)
+    private let tzSize = CGSize(width: 662, height: 70)
+    private let czSize = CGSize(width: 512, height: 323)
+    private let rzSize = CGSize(width: 135, height: 323)
+
     var body: some View {
-        GeometryReader { proxy in
-            let availableWidth = proxy.size.width
-            let layout = LayoutMetrics(availableWidth: availableWidth, cfg: cfg)
+        ZStack {
+            configurableBackground
+                .ignoresSafeArea()
 
-            ZStack {
-                // Board layer
-                boardLayer(layout: layout)
-                    .allowsHitTesting(!showingOverlay)
-                    .blur(radius: showingOverlay ? 1.0 : 0)
+            GeometryReader { proxy in
+                // Treat coordinate system as landscape-left: X increases to the right, Y increases down.
+                // MGZ is placed mgzOffsetFromLeft from the “left/top” edge in landscape-left, which is x = mgzOffsetFromLeft, y = 0.
+                let mgzOrigin = CGPoint(x: mgzOffsetFromLeft, y: 0)
 
-                // HUD layer
-                VStack(spacing: 6) {
-                    topHUD(layout: layout)
-                    Spacer()
+                // Build MGZ container with fixed size
+                ZStack {
+                    // Board layer within MGZ: LZ, TZ, CZ, RZ
+                    zonesInMGZ()
+                        .allowsHitTesting(!showingOverlay)
+                        .blur(radius: showingOverlay ? 1.0 : 0)
+
+                    // Overlay layer centered within MGZ
+                    if showingOverlay {
+                        Color.black.opacity(0.35)
+                            .ignoresSafeArea()
+
+                        overlayPanel
+                            .padding(18)
+                            .transition(.scale.combined(with: .opacity))
+                            .zIndex(1)
+                    }
                 }
-                .padding(.horizontal, layout.outerHPad)
-                .padding(.top, layout.outerVPad)
-
-                // Overlay layer
-                if showingOverlay {
-                    Color.black.opacity(0.35)
-                        .ignoresSafeArea()
-
-                    overlayPanel
-                        .padding(18)
-                        .transition(.scale.combined(with: .opacity))
-                        .zIndex(1)
-                }
+                .frame(width: mgzSize.width, height: mgzSize.height, alignment: .topLeading)
+                .position(x: mgzOrigin.x + mgzSize.width / 2, y: mgzOrigin.y + mgzSize.height / 2)
             }
-            .animation(.easeInOut(duration: 0.22), value: showingOverlay)
+        }
+        .animation(.easeInOut(duration: 0.22), value: showingOverlay)
+        .ignoresSafeArea()
+    }
+
+    // MARK: - Configurable Background
+    @ViewBuilder
+    private var configurableBackground: some View {
+        switch cfg.backgroundStyle {
+        case .solid(let color):
+            color
+        case .linearGradient(let colors, let start, let end):
+            LinearGradient(colors: colors, startPoint: start, endPoint: end)
+        case .radialGradient(let colors, let center, let startRadius, let endRadius):
+            RadialGradient(colors: colors, center: center, startRadius: startRadius, endRadius: endRadius)
+        case .angularGradient(let colors, let center, let angle):
+            AngularGradient(colors: colors, center: center, angle: angle)
         }
     }
 
@@ -43,29 +69,56 @@ struct ContentView: View {
         game.phase == .betweenRounds || game.phase == .gameOver
     }
 
-    // MARK: - Board Layer (three panes)
-    private func boardLayer(layout: LayoutMetrics) -> some View {
-        HStack(alignment: .top, spacing: layout.mainHStackSpacing) {
-            // Left: Round + Legend + Current Card ("shoe")
-            leftPanel(layout: layout)
-                .frame(minWidth: layout.leftPaneMinWidth, maxWidth: layout.leftPaneMaxWidth, alignment: .topLeading)
+    // MARK: - MGZ Zones Layout
+    private func zonesInMGZ() -> some View {
+        ZStack(alignment: .topLeading) {
+            // Left Zone (LZ)
+            leftZone
+                .frame(width: lzSize.width, height: lzSize.height)
+                .position(x: lzSize.width / 2, y: lzSize.height / 2) // left aligned to MGZ left
 
-            // Center: Columns (single ScrollView: chip + column + pill per column)
-            columnsArea(layout: layout)
-                .frame(maxWidth: .infinity, alignment: .top)
+            // Top Zone (TZ) – top aligned to MGZ, left aligned to right side of LZ
+            topZone
+                .frame(width: tzSize.width, height: tzSize.height)
+                .position(x: lzSize.width + tzSize.width / 2, y: tzSize.height / 2)
 
-            // Right: Sidebar (Round scores + compact Total + Take Score)
-            rightSidebar(layout: layout)
-                .frame(minWidth: layout.rightPaneMinWidth, maxWidth: layout.rightPaneMaxWidth, alignment: .topTrailing)
+            // Center Zone (CZ) – bottom aligned to MGZ, top aligned to bottom of TZ, left aligned with right side of LZ
+            centerZone
+                .frame(width: czSize.width, height: czSize.height)
+                .position(x: lzSize.width + czSize.width / 2, y: mgzSize.height - czSize.height / 2)
+
+            // Right Zone (RZ) – aligned to the right side of MGZ, same vertical span as CZ (height 323)
+            rightZone
+                .frame(width: rzSize.width, height: rzSize.height)
+                .position(x: mgzSize.width - rzSize.width / 2, y: mgzSize.height - rzSize.height / 2)
         }
-        .padding(.horizontal, layout.outerHPad)
-        .padding(.top, layout.hudReserveHeight + layout.outerVPad)
-        .padding(.bottom, layout.outerVPad)
     }
 
-    // MARK: - HUD
-    private func topHUD(layout: LayoutMetrics) -> some View {
-        HStack(spacing: 12) {
+    // MARK: - Zone Contents
+
+    // LZ: Shoe, Round label, score chart (bonusLegend)
+    private var leftZone: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // Shoe/current card
+            currentCardPanel(width: 100) // fixed width to fit zone; adjust if needed
+
+            // Round label moved below the shoe
+            Text("Round \(game.round)")
+                .font(.system(.title3, design: .rounded).weight(.bold))
+                .minimumScaleFactor(0.8)
+                .frame(width: 100, alignment: .center)
+                
+
+            // Score chart
+            bonusLegend
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(8)
+    }
+
+    // TZ: Pass button, timer, High Score
+    private var topZone: some View {
+        HStack(spacing: 8) {
             // Pass
             Button {
                 game.usePass()
@@ -80,15 +133,178 @@ struct ContentView: View {
             }
             .disabled(!(game.phase == .inRound && game.passAvailable && game.currentCard != nil))
 
-            // Timer bar (height from config)
+            // Timer
             timerBar
                 .frame(height: cfg.s(cfg.hud.timerBarHeight))
                 .frame(maxWidth: .infinity)
+                .padding(.top, -8)
+                .padding(.horizontal, 20)
 
-            // High score chip (best overall)
+            // High score chip
             highScoreChip
         }
+        .padding(.horizontal, 0)
+        .padding(.top, 8)
     }
+
+    // CZ: Columns, scores, soft overlay, status pills
+    private var centerZone: some View {
+        // Fill CZ both horizontally and vertically, no scroll, no extra padding
+        GeometryReader { geo in
+            let availableWidth = geo.size.width
+            let availableHeight = geo.size.height
+            let layout = LayoutMetrics(availableWidth: availableWidth, availableHeight: availableHeight, cfg: cfg)
+
+            // Distribute five columns with fixed inter-column spacing; chrome stays same size
+            HStack(alignment: .top, spacing: layout.interColumnSpacing) {
+                ForEach(game.columns.indices, id: \.self) { idx in
+                    let col = game.columns[idx]
+                    let canTap = game.phase == .inRound && !col.isLocked && game.currentCard != nil
+
+                    VStack(spacing: 6) {
+                        // Chip (hex-tab style) — keep its size, centered to column
+                        HexTab()
+                            .fill(Color.blue.opacity(0.9))
+                            .overlay(HexTab().stroke(Color(.sRGB, white: 0, opacity: 0.25), lineWidth: 1))
+                            .frame(width: max(cfg.columns.hexTabMinWidth, layout.cardWidth * 0.62), height: cfg.columns.hexTabHeight)
+                            .overlay(
+                                Text("\(col.total)")
+                                    .font(.system(.subheadline, design: .rounded).weight(.bold))
+                                    .monospacedDigit()
+                                    .foregroundStyle(.white)
+                            )
+
+                        // Column area fills the full CZ height allotted to the column
+                        columnStack(col: col, layout: layout)
+                            .frame(height: layout.columnFrameHeight) // exact height to fill CZ
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                if canTap {
+                                    game.placeCurrentCard(inColumn: idx)
+                                }
+                            }
+
+                        // Bottom pill — same size, centered under the column
+                        bottomStatusPill(for: col)
+                    }
+                    .frame(width: layout.columnFrameWidth) // ensure each column gets its computed width
+                }
+            }
+            .frame(width: availableWidth, height: availableHeight, alignment: .topLeading)
+        }
+    }
+
+    private func columnStack(col: Column, layout: LayoutMetrics) -> some View {
+        let W = layout.cardWidth
+        let H = layout.cardHeight
+        let overlapStep = H * layout.overlapFraction
+        let fiveCardStackHeight = H + 4.0 * overlapStep
+        let columnPadding = layout.columnPadding
+        let columnFrameWidth = max(W + columnPadding * 2, W + layout.minColumnChrome)
+        let columnFrameHeight = fiveCardStackHeight + columnPadding * 2
+
+        return ZStack(alignment: .top) {
+            RoundedRectangle(cornerRadius: cfg.columns.columnCornerRadius)
+                .strokeBorder(Color(.sRGB, white: 0, opacity: cfg.columns.columnStrokeOpacity), lineWidth: 1)
+
+            VStack(spacing: 0) {
+                Spacer(minLength: columnPadding)
+
+                ZStack(alignment: .top) {
+                    ForEach(Array(col.cards.enumerated()), id: \.element.id) { (i, card) in
+                        CardView(rank: card.rank, suit: card.suit, width: W)
+                            .offset(x: 0, y: overlapStep * CGFloat(i))
+                    }
+                    if col.cards.isEmpty {
+                        Text("Tap to place")
+                            .foregroundStyle(.secondary)
+                            .font(.caption2)
+                            .padding(.vertical, 4)
+                    }
+                }
+                .frame(width: W, height: H, alignment: .top)
+                .frame(maxWidth: .infinity, alignment: .center)
+
+                Spacer(minLength: fiveCardStackHeight - H + columnPadding)
+            }
+        }
+        .overlay(alignment: .top) {
+            if col.isSoft && !col.isFiveCardCharlie && col.total <= 21 {
+                Text("Soft")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 2)
+                    .background(.thinMaterial, in: Capsule())
+                    .offset(y: cfg.columns.softLabelYOffset)
+                    .zIndex(1)
+            }
+        }
+        .frame(width: columnFrameWidth, height: columnFrameHeight)
+    }
+
+    // RZ: Total card score (aligned with CZ columns), round scores, total score, Take Score, Pick21 Logo
+    private var rightZone: some View {
+        VStack(alignment: .trailing, spacing: 10) {
+            // Compact total aligned visually with columns’ score chips
+            compactTotalBoxForRZ()
+
+            topThreeScores
+
+            Button {
+                game.takeScore()
+            } label: {
+                Text("Take Score")
+                    .font(.headline.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 11)
+                    .padding(.horizontal, 14)
+                    .background(RoundedRectangle(cornerRadius: 11).fill(Color.green.opacity(game.phase == .inRound ? 0.92 : 0.35)))
+                    .foregroundStyle(.white)
+            }
+            .disabled(!(game.phase == .inRound))
+
+            // Pick21 Logo placeholder
+            pick21Logo
+                .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+        .padding(8)
+    }
+
+    private var pick21Logo: some View {
+        // Placeholder vector logo; replace with Image("Pick21Logo") if you add an asset
+        HStack(spacing: 6) {
+            Image(systemName: "suit.spade.fill")
+            Text("Pick21")
+                .font(.headline.weight(.bold))
+        }
+        .foregroundStyle(.primary)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.12)))
+    }
+
+    private func compactTotalBoxForRZ() -> some View {
+        let (sum, _) = game.boardTotals()
+        return VStack(alignment: .trailing, spacing: 6) {
+            Text("Total")
+                .font(.subheadline.weight(.semibold))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .background(RoundedRectangle(cornerRadius: 9).fill(Color.blue.opacity(0.9)))
+                .foregroundStyle(.white)
+
+            Text("\(sum)")
+                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .monospacedDigit()
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .padding(8)
+                .background(RoundedRectangle(cornerRadius: 9).fill(Color(white: 0.95)))
+        }
+    }
+
+    // Existing components reused (timerBar, highScoreChip, currentCardPanel, bonusLegend, topThreeScores, bottomStatusPill, overlay)
 
     private var timerBar: some View {
         GeometryReader { geo in
@@ -172,18 +388,6 @@ struct ContentView: View {
         )
     }
 
-    // MARK: - Left Panel (Round + Legend + Current Card)
-    private func leftPanel(layout: LayoutMetrics) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Round \(game.round)")
-                .font(.system(.title2, design: .rounded).weight(.bold))
-                .minimumScaleFactor(0.8)
-
-            currentCardPanel(width: layout.cardWidth)
-            bonusLegend
-        }
-    }
-
     private func currentCardPanel(width: CGFloat) -> some View {
         VStack(spacing: 6) {
             if let c = game.currentCard {
@@ -209,7 +413,8 @@ struct ContentView: View {
             legendRow("98",  "× 100")
             legendRow("97",  "× 50")
         }
-        .padding(10)
+        .frame(width: 100, alignment: .leading) // match shoe card width
+        .padding(2)
         .background(
             RoundedRectangle(cornerRadius: 10)
                 .fill(Color.black.opacity(0.88))
@@ -221,11 +426,11 @@ struct ContentView: View {
     }
 
     private func legendRow(_ total: String, _ mult: String) -> some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 4) {
             Text(total)
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(.white)
-                .frame(width: 32, alignment: .trailing)
+                .frame(width: 25, alignment: .trailing)
             Text("=")
                 .font(.caption2)
                 .foregroundStyle(.white.opacity(0.8))
@@ -239,133 +444,6 @@ struct ContentView: View {
         .monospacedDigit()
     }
 
-    // MARK: - Columns Area
-    private func columnsArea(layout: LayoutMetrics) -> some View {
-        let W = layout.cardWidth
-        let H = layout.cardHeight
-        let overlapStep = H * layout.overlapFraction
-        let fiveCardStackHeight = H + 4.0 * overlapStep
-        let columnPadding = layout.columnPadding
-        let columnFrameWidth = max(W + columnPadding * 2, W + layout.minColumnChrome)
-        let columnFrameHeight = fiveCardStackHeight + columnPadding * 2
-
-        return ScrollView(.horizontal, showsIndicators: false) {
-            HStack(alignment: .top, spacing: layout.interColumnSpacing) {
-                ForEach(game.columns.indices, id: \.self) { idx in
-                    let col = game.columns[idx]
-                    let canTap = game.phase == .inRound && !col.isLocked && game.currentCard != nil
-
-                    VStack(spacing: 6) {
-                        // Chip (hex-tab style)
-                        HexTab()
-                            .fill(Color.blue.opacity(0.9))
-                            .overlay(HexTab().stroke(Color(.sRGB, white: 0, opacity: 0.25), lineWidth: 1))
-                            .frame(width: max(cfg.columns.hexTabMinWidth, W * 0.62), height: cfg.columns.hexTabHeight)
-                            .overlay(
-                                Text("\(col.total)")
-                                    .font(.system(.subheadline, design: .rounded).weight(.bold))
-                                    .monospacedDigit()
-                                    .foregroundStyle(.white)
-                            )
-
-                        // Column
-                        ZStack(alignment: .top) {
-                            RoundedRectangle(cornerRadius: cfg.columns.columnCornerRadius)
-                                .strokeBorder(Color(.sRGB, white: 0, opacity: cfg.columns.columnStrokeOpacity), lineWidth: 1)
-
-                            VStack(spacing: 0) {
-                                Spacer(minLength: columnPadding)
-
-                                ZStack(alignment: .top) {
-                                    ForEach(Array(col.cards.enumerated()), id: \.element.id) { (i, card) in
-                                        CardView(rank: card.rank, suit: card.suit, width: W)
-                                            .offset(x: 0, y: overlapStep * CGFloat(i))
-                                    }
-                                    if col.cards.isEmpty {
-                                        Text("Tap to place")
-                                            .foregroundStyle(.secondary)
-                                            .font(.caption2)
-                                            .padding(.vertical, 4)
-                                    }
-                                }
-                                .frame(width: W, height: H, alignment: .top)
-                                .frame(maxWidth: .infinity, alignment: .center)
-
-                                Spacer(minLength: fiveCardStackHeight - H + columnPadding)
-                            }
-                        }
-                        // Soft label floats above the top border without shifting layout
-                        .overlay(alignment: .top) {
-                            if col.isSoft && !col.isFiveCardCharlie && col.total <= 21 {
-                                Text("Soft")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                                    .padding(.horizontal, 4)
-                                    .padding(.vertical, 2)
-                                    .background(.thinMaterial, in: Capsule())
-                                    .offset(y: cfg.columns.softLabelYOffset)
-                                    .zIndex(1)
-                            }
-                        }
-                        .frame(width: columnFrameWidth, height: columnFrameHeight)
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            if canTap {
-                                game.placeCurrentCard(inColumn: idx)
-                            }
-                        }
-
-                        // Bottom pill
-                        bottomStatusPill(for: col)
-                    }
-                }
-            }
-            .padding(.horizontal, 2)
-            .padding(.top, layout.columnsTopInset)
-        }
-    }
-
-    private func bottomStatusPill(for col: Column) -> some View {
-        let text: String
-        let color: Color
-        if col.isLocked {
-            text = "LOCKED"
-            color = .green
-        } else if col.busted {
-            text = "BUST"
-            color = .red
-        } else {
-            text = "HIT"
-            color = .gray
-        }
-        return Text(text)
-            .font(.caption.weight(.semibold))
-            .padding(.horizontal, cfg.columns.bottomPillHPad).padding(.vertical, cfg.columns.bottomPillVPad)
-            .background(Capsule().fill(color.opacity(0.28)))
-    }
-
-    // MARK: - Right Sidebar
-    private func rightSidebar(layout: LayoutMetrics) -> some View {
-        VStack(alignment: .trailing, spacing: 10) {
-            topThreeScores
-            compactTotalBox(layout: layout)
-            Button {
-                game.takeScore()
-            } label: {
-                Text("Take Score")
-                    .font(.headline.weight(.semibold))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 11)
-                    .padding(.horizontal, 14)
-                    .background(RoundedRectangle(cornerRadius: 11).fill(Color.green.opacity(game.phase == .inRound ? 0.92 : 0.35)))
-                    .foregroundStyle(.white)
-            }
-            .disabled(!(game.phase == .inRound))
-        }
-        .frame(minWidth: layout.rightPaneMinWidth, maxWidth: layout.rightPaneMaxWidth)
-    }
-
-    // Round scores for the current game (round 1–3)
     private var topThreeScores: some View {
         VStack(alignment: .trailing, spacing: 6) {
             ForEach(0..<3, id: \.self) { i in
@@ -389,25 +467,23 @@ struct ContentView: View {
         }
     }
 
-    private func compactTotalBox(layout: LayoutMetrics) -> some View {
-        let (sum, _) = game.boardTotals()
-        return VStack(alignment: .trailing, spacing: 6) {
-            Text("Total")
-                .font(.subheadline.weight(.semibold))
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 5)
-                .background(RoundedRectangle(cornerRadius: 9).fill(Color.blue.opacity(0.9)))
-                .foregroundStyle(.white)
-
-            Text("\(sum)")
-                .font(.system(size: 24, weight: .bold, design: .rounded))
-                .monospacedDigit()
-                .frame(maxWidth: .infinity, alignment: .trailing)
-                .padding(8)
-                .background(RoundedRectangle(cornerRadius: 9).fill(Color(white: 0.95)))
+    private func bottomStatusPill(for col: Column) -> some View {
+        let text: String
+        let color: Color
+        if col.isLocked {
+            text = "LOCKED"
+            color = .green
+        } else if col.busted {
+            text = "BUST"
+            color = .red
+        } else {
+            text = "HIT"
+            color = .gray
         }
-        .frame(maxWidth: layout.rightPaneMaxWidth)
+        return Text(text)
+            .font(.caption.weight(.semibold))
+            .padding(.horizontal, cfg.columns.bottomPillHPad).padding(.vertical, cfg.columns.bottomPillVPad)
+            .background(Capsule().fill(color.opacity(0.28)))
     }
 
     // MARK: - Overlay Panels
@@ -488,54 +564,65 @@ struct ContentView: View {
 // MARK: - Layout Metrics driven by LayoutConfig
 private struct LayoutMetrics {
     let availableWidth: CGFloat
+    let availableHeight: CGFloat
     let cfg: LayoutConfig
 
     // Derived from config
     var minCardWidth: CGFloat { cfg.s(cfg.cards.minWidth) }
     var maxCardWidth: CGFloat { cfg.s(cfg.cards.maxWidth) }
     var interColumnSpacing: CGFloat { cfg.s(cfg.columns.interColumnSpacing) }
-    var mainHStackSpacing: CGFloat { cfg.s(cfg.panes.mainHStackSpacing) }
-    var outerHPad: CGFloat { cfg.s(cfg.hud.outerHPad) }
-    var outerVPad: CGFloat { cfg.s(cfg.hud.outerVPad) }
     var minColumnChrome: CGFloat { cfg.s(cfg.columns.minColumnChrome) }
     var columnPaddingFraction: CGFloat { cfg.columns.columnPaddingFraction } // already a fraction
     var overlapFraction: CGFloat { cfg.columns.overlapFraction }
-    var columnsTopInset: CGFloat { cfg.s(cfg.columns.columnsTopInset) }
 
-    var leftPaneMinWidth: CGFloat { cfg.s(cfg.panes.leftPaneMinWidth) }
-    var leftPaneMaxWidth: CGFloat { cfg.s(cfg.panes.leftPaneMaxWidth) }
-    var rightPaneMinWidth: CGFloat { cfg.s(cfg.panes.rightPaneMinWidth) }
-    var rightPaneMaxWidth: CGFloat { cfg.s(cfg.panes.rightPaneMaxWidth) }
+    // Computed dimensions to exactly fill CZ without outer padding
+    // 1) Height-constrained card width: ensure five-card stack + padding == availableHeight
+    //    H + 4*(H*overlap) + 2*pad == availableHeight
+    //    Let pad = columnPaddingFraction * W, and H = W * aspect
+    //    => (W*aspect) * (1 + 4*overlap) + 2*(columnPaddingFraction * W) == availableHeight
+    //    => W * [aspect * (1 + 4*overlap) + 2*columnPaddingFraction] == availableHeight
+    //    => W_h = availableHeight / denom
+    var heightConstrainedCardWidth: CGFloat {
+        let aspect = cfg.cards.aspect
+        let denom = aspect * (1 + 4 * overlapFraction) + 2 * columnPaddingFraction
+        guard denom > 0 else { return maxCardWidth }
+        return availableHeight / denom
+    }
 
-    var hudReserveHeight: CGFloat { cfg.s(cfg.hud.hudReserveHeight) }
-
-    // Adaptive card width computation (same approach, using config)
-    var cardWidth: CGFloat {
-        let budget = max(availableWidth - (outerHPad * 2), 320)
-        var w = clamp((minCardWidth + maxCardWidth) / 2, minCardWidth, maxCardWidth)
-
-        // First pass
-        let chrome1 = minColumnChrome + (columnPaddingFraction * 2 * w)
-        let columns1 = 5 * (w + chrome1) + 4 * interColumnSpacing
-        let side1 = leftPaneMaxWidth + rightPaneMaxWidth + mainHStackSpacing * 2
-        let total1 = columns1 + side1
-        w = clamp(w * (budget / max(total1, 1)), minCardWidth, maxCardWidth)
-
-        // Second pass
-        let chrome2 = minColumnChrome + (columnPaddingFraction * 2 * w)
-        let columns2 = 5 * (w + chrome2) + 4 * interColumnSpacing
-        let side2 = leftPaneMaxWidth + rightPaneMaxWidth + mainHStackSpacing * 2
-        let total2 = columns2 + side2
-        w = clamp(w * (budget / max(total2, 1)), minCardWidth, maxCardWidth)
-
+    // 2) Width-constrained card width: five columns + chrome + spacings == availableWidth
+    //    Column frame width = max(W + 2*pad, W + minColumnChrome)
+    //    We’ll assume W + 2*pad dominates (common case), but take max with chrome to be safe.
+    var widthConstrainedCardWidth: CGFloat {
+        // We can solve iteratively since pad depends on W.
+        // Use a small fixed-point iteration to converge.
+        var w = min(maxCardWidth, max(minCardWidth, availableWidth / 7.0))
+        for _ in 0..<8 {
+            let pad = max(8, w * columnPaddingFraction)
+            let colFrame = max(w + 2 * pad, w + minColumnChrome)
+            let total = 5 * colFrame + 4 * interColumnSpacing
+            let scale = availableWidth / max(total, 1)
+            w = min(maxCardWidth, max(minCardWidth, w * scale))
+        }
         return w
+    }
+
+    // Final card width is the min of height- and width-constrained sizes
+    var cardWidth: CGFloat {
+        let w = min(heightConstrainedCardWidth, widthConstrainedCardWidth)
+        return min(maxCardWidth, max(minCardWidth, w))
     }
 
     var cardHeight: CGFloat { cardWidth * cfg.cards.aspect }
     var columnPadding: CGFloat { max(8, cardWidth * columnPaddingFraction) }
 
-    private func clamp(_ x: CGFloat, _ a: CGFloat, _ b: CGFloat) -> CGFloat {
-        min(max(x, a), b)
+    var columnFrameWidth: CGFloat {
+        max(cardWidth + 2 * columnPadding, cardWidth + minColumnChrome)
+    }
+
+    var columnFrameHeight: CGFloat {
+        let overlapStep = cardHeight * overlapFraction
+        let fiveCardStackHeight = cardHeight + 4.0 * overlapStep
+        return fiveCardStackHeight + 2 * columnPadding
     }
 }
 
@@ -585,4 +672,3 @@ struct HighScoresView: View {
         }
     }
 }
-

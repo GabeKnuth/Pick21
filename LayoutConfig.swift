@@ -7,6 +7,16 @@ final class LayoutConfig: ObservableObject {
     // Global proportional scale (applies to most constants via computed access)
     @Published var uiScale: CGFloat = 1.0
 
+    // Background style configuration
+    enum BackgroundStyle: Equatable {
+        case solid(Color)
+        case linearGradient(colors: [Color], start: UnitPoint, end: UnitPoint)
+        case radialGradient(colors: [Color], center: UnitPoint, startRadius: CGFloat, endRadius: CGFloat)
+        case angularGradient(colors: [Color], center: UnitPoint, angle: Angle)
+    }
+    @Published var backgroundStyle: BackgroundStyle = .solid(.white)
+    
+
     // Cards
     struct CardTunables {
         var minWidth: CGFloat = 64
@@ -79,3 +89,4 @@ final class LayoutConfig: ObservableObject {
     // Helpers to get scaled values
     func s(_ v: CGFloat) -> CGFloat { v * uiScale }
 }
+
