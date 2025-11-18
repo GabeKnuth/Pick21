@@ -80,17 +80,20 @@ struct ContentView: View {
             // Top Zone (TZ) – top aligned to MGZ, left aligned to right side of LZ
             topZone
                 .frame(width: tzSize.width, height: tzSize.height)
-                .position(x: lzSize.width + tzSize.width / 2, y: tzSize.height / 2)
+                .position(x: lzSize.width + tzSize.width / 2 - 8, y: tzSize.height / 2)
 
             // Center Zone (CZ) – bottom aligned to MGZ, top aligned to bottom of TZ, left aligned with right side of LZ
             centerZone
                 .frame(width: czSize.width, height: czSize.height)
                 .position(x: lzSize.width + czSize.width / 2, y: mgzSize.height - czSize.height / 2)
 
-            // Right Zone (RZ) – aligned to the right side of MGZ, same vertical span as CZ (height 323)
+            // Right Zone (RZ) – make same height as CZ and align its top to the top of CZ
+            
             rightZone
-                .frame(width: rzSize.width, height: rzSize.height)
-                .position(x: mgzSize.width - rzSize.width / 2, y: mgzSize.height - rzSize.height / 2)
+                .frame(width: rzSize.width, height: czSize.height)
+                .position(x: lzSize.width + czSize.width + rzSize.width / 2,
+                          y: mgzSize.height - czSize.height / 2)
+                
         }
     }
 
@@ -118,7 +121,7 @@ struct ContentView: View {
 
     // TZ: Pass button, timer, High Score
     private var topZone: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 0) {
             // Pass
             Button {
                 game.usePass()
@@ -132,16 +135,18 @@ struct ContentView: View {
                     .foregroundStyle(.white)
             }
             .disabled(!(game.phase == .inRound && game.passAvailable && game.currentCard != nil))
+            .padding(.trailing, 20)
 
             // Timer
             timerBar
                 .frame(height: cfg.s(cfg.hud.timerBarHeight))
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: 390)
                 .padding(.top, -8)
-                .padding(.horizontal, 20)
+                .padding(.horizontal, 10)
 
             // High score chip
             highScoreChip
+
         }
         .padding(.horizontal, 0)
         .padding(.top, 8)
@@ -173,10 +178,11 @@ struct ContentView: View {
                                     .monospacedDigit()
                                     .foregroundStyle(.white)
                             )
+                            .offset(y: -2)
 
                         // Column area fills the full CZ height allotted to the column
                         columnStack(col: col, layout: layout)
-                            .frame(height: layout.columnFrameHeight) // exact height to fill CZ
+                            .frame(height: layout.columnFrameHeight - 8) // exact height to fill CZ
                             .contentShape(Rectangle())
                             .onTapGesture {
                                 if canTap {
@@ -186,12 +192,44 @@ struct ContentView: View {
 
                         // Bottom pill — same size, centered under the column
                         bottomStatusPill(for: col)
+                            .offset(y: -15)
                     }
                     .frame(width: layout.columnFrameWidth) // ensure each column gets its computed width
                 }
             }
             .frame(width: availableWidth, height: availableHeight, alignment: .topLeading)
         }
+    }
+
+    private func columnPillBackgroundColor(for col: Column) -> Color {
+        // Mirrors the bottom pill state
+        if col.isLocked {
+            return .green
+        }
+        let isSoftState = (!col.isLocked && col.isSoft && !col.isFiveCardCharlie && col.total <= 21)
+        if isSoftState {
+            return .yellow
+        }
+        return Color(.sRGB, red: 237/255, green: 237/255, blue: 237/255, opacity: 1)
+    }
+
+    private func darkerBorderColor(from base: Color) -> Color {
+        // Adjust per known bases to ensure good contrast
+        switch base {
+        case .green:
+            return Color(.sRGB, red: 0, green: 0.55, blue: 0, opacity: 1) // darker green
+        case .yellow:
+            return Color(.sRGB, red: 0.75, green: 0.6, blue: 0, opacity: 1) // amber-ish darker yellow
+        default:
+            return Color(.sRGB, white: 0.6, opacity: 1) // darker gray
+        }
+    }
+
+    private func strokeWidth(for base: Color) -> CGFloat {
+        // Slightly thicker when locked, medium for soft, thin otherwise
+        if base == .green { return 2.5 }
+        if base == .yellow { return 2.5 }
+        return 1.0
     }
 
     private func columnStack(col: Column, layout: LayoutMetrics) -> some View {
@@ -201,11 +239,16 @@ struct ContentView: View {
         let fiveCardStackHeight = H + 4.0 * overlapStep
         let columnPadding = layout.columnPadding
         let columnFrameWidth = max(W + columnPadding * 2, W + layout.minColumnChrome)
-        let columnFrameHeight = fiveCardStackHeight + columnPadding * 2
+        let columnFrameHeight = (fiveCardStackHeight + columnPadding * 2) - 6
+
+        let pillColor = columnPillBackgroundColor(for: col)
+        let strokeColor = darkerBorderColor(from: pillColor)
+            .opacity(cfg.columns.columnStrokeOpacity)
+        let lineW = strokeWidth(for: pillColor)
 
         return ZStack(alignment: .top) {
             RoundedRectangle(cornerRadius: cfg.columns.columnCornerRadius)
-                .strokeBorder(Color(.sRGB, white: 0, opacity: cfg.columns.columnStrokeOpacity), lineWidth: 1)
+                .strokeBorder(strokeColor, lineWidth: lineW)
 
             VStack(spacing: 0) {
                 Spacer(minLength: columnPadding)
@@ -228,29 +271,29 @@ struct ContentView: View {
                 Spacer(minLength: fiveCardStackHeight - H + columnPadding)
             }
         }
-        .overlay(alignment: .top) {
-            if col.isSoft && !col.isFiveCardCharlie && col.total <= 21 {
-                Text("Soft")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 4)
-                    .padding(.vertical, 2)
-                    .background(.thinMaterial, in: Capsule())
-                    .offset(y: cfg.columns.softLabelYOffset)
-                    .zIndex(1)
-            }
-        }
+        // Removed the old "Soft" top overlay to avoid duplication.
         .frame(width: columnFrameWidth, height: columnFrameHeight)
     }
 
     // RZ: Total card score (aligned with CZ columns), round scores, total score, Take Score, Pick21 Logo
     private var rightZone: some View {
-        VStack(alignment: .trailing, spacing: 10) {
-            // Compact total aligned visually with columns’ score chips
-            compactTotalBoxForRZ()
+        // Compute the same layout used by CZ to align the hex chip vertically
+        let layout = LayoutMetrics(
+            availableWidth: czSize.width,
+            availableHeight: czSize.height,
+            cfg: cfg
+        )
+        let hexWidth = max(cfg.columns.hexTabMinWidth, layout.cardWidth * 0.62)
+        let hexHeight = cfg.columns.hexTabHeight
 
+        return VStack(alignment: .trailing, spacing: 10) {
+            // Compact total hex chip
+            compactTotalBoxForRZ(hexWidth: hexWidth, hexHeight: hexHeight)
+
+            // Round scores 1–3
             topThreeScores
 
+            // Take Score button
             Button {
                 game.takeScore()
             } label: {
@@ -259,7 +302,12 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 11)
                     .padding(.horizontal, 14)
-                    .background(RoundedRectangle(cornerRadius: 11).fill(Color.green.opacity(game.phase == .inRound ? 0.92 : 0.35)))
+                    .background(
+                        RoundedRectangle(cornerRadius: 11)
+                            .fill(Color.green.opacity(
+                                game.phase == .inRound ? 0.92 : 0.35
+                            ))
+                    )
                     .foregroundStyle(.white)
             }
             .disabled(!(game.phase == .inRound))
@@ -268,8 +316,10 @@ struct ContentView: View {
             pick21Logo
                 .frame(maxWidth: .infinity, alignment: .trailing)
         }
-        .padding(8)
+        .frame(maxHeight: .infinity, alignment: .top) // <-- allow it to expand to the given height
+
     }
+
 
     private var pick21Logo: some View {
         // Placeholder vector logo; replace with Image("Pick21Logo") if you add an asset
@@ -284,24 +334,24 @@ struct ContentView: View {
         .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.12)))
     }
 
-    private func compactTotalBoxForRZ() -> some View {
+    private func compactTotalBoxForRZ(hexWidth: CGFloat? = nil, hexHeight: CGFloat? = nil) -> some View {
         let (sum, _) = game.boardTotals()
-        return VStack(alignment: .trailing, spacing: 6) {
-            Text("Total")
-                .font(.subheadline.weight(.semibold))
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 5)
-                .background(RoundedRectangle(cornerRadius: 9).fill(Color.blue.opacity(0.9)))
-                .foregroundStyle(.white)
 
-            Text("\(sum)")
-                .font(.system(size: 24, weight: .bold, design: .rounded))
-                .monospacedDigit()
-                .frame(maxWidth: .infinity, alignment: .trailing)
-                .padding(8)
-                .background(RoundedRectangle(cornerRadius: 9).fill(Color(white: 0.95)))
-        }
+        // If not provided, compute using CZ layout
+        let layout = LayoutMetrics(availableWidth: czSize.width, availableHeight: czSize.height, cfg: cfg)
+        let w = hexWidth ?? max(cfg.columns.hexTabMinWidth, layout.cardWidth * 0.62)
+        let h = hexHeight ?? cfg.columns.hexTabHeight
+
+        return HexTab()
+            .fill(Color.blue.opacity(0.9))
+            .overlay(HexTab().stroke(Color(.sRGB, white: 0, opacity: 0.25), lineWidth: 1))
+            .frame(width: w, height: h)
+            .overlay(
+                Text("\(sum)")
+                    .font(.system(.subheadline, design: .rounded).weight(.bold))
+                    .monospacedDigit()
+                    .foregroundStyle(.white)
+            )
     }
 
     // Existing components reused (timerBar, highScoreChip, currentCardPanel, bonusLegend, topThreeScores, bottomStatusPill, overlay)
@@ -366,18 +416,18 @@ struct ContentView: View {
     private var highScoreChip: some View {
         let best = game.highScores.entries.first?.score ?? 0
         return HStack(spacing: 8) {
-            Text("High Score")
-                .font(.subheadline.weight(.semibold))
+            Text("High\nScore")
+                .font(.caption2.weight(.semibold))
                 .foregroundStyle(.white)
             Text(best.formatted())
-                .font(.headline.monospacedDigit())
+                .font(.subheadline .monospacedDigit())
                 .foregroundStyle(.white)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
                 .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.18)))
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
         .background(
             RoundedRectangle(cornerRadius: 11)
                 .fill(Color.blue.opacity(0.9))
@@ -468,22 +518,28 @@ struct ContentView: View {
     }
 
     private func bottomStatusPill(for col: Column) -> some View {
+        let pillBackground = columnPillBackgroundColor(for: col)
+
         let text: String
-        let color: Color
+        let foreground: Color
+
         if col.isLocked {
             text = "LOCKED"
-            color = .green
-        } else if col.busted {
-            text = "BUST"
-            color = .red
+            foreground = .white
+        } else if pillBackground == .yellow {
+            text = "SOFT"
+            foreground = .black
         } else {
             text = "HIT"
-            color = .gray
+            foreground = .primary
         }
+
         return Text(text)
             .font(.caption.weight(.semibold))
-            .padding(.horizontal, cfg.columns.bottomPillHPad).padding(.vertical, cfg.columns.bottomPillVPad)
-            .background(Capsule().fill(color.opacity(0.28)))
+            .foregroundStyle(foreground)
+            .padding(.horizontal, cfg.columns.bottomPillHPad)
+            .padding(.vertical, cfg.columns.bottomPillVPad)
+            .background(Capsule().fill(pillBackground))
     }
 
     // MARK: - Overlay Panels

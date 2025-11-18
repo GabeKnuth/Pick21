@@ -41,7 +41,7 @@ final class LayoutConfig: ObservableObject {
         var overlapFraction: CGFloat = 0.32
         var columnsTopInset: CGFloat = 30
         var hexTabMinWidth: CGFloat = 54
-        var hexTabHeight: CGFloat = 26
+        var hexTabHeight: CGFloat = 18
         var softLabelYOffset: CGFloat = -14
         var columnCornerRadius: CGFloat = 8
         var columnStrokeOpacity: CGFloat = 0.18
