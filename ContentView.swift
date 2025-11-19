@@ -39,12 +39,20 @@ struct ContentView: View {
 
                     // Overlay layer centered within MGZ
                     if showingOverlay {
-                        Color.black.opacity(0.35)
-                            .ignoresSafeArea()
+                        // Dimmed background over board
+                        LinearGradient(
+                            colors: [Color.black.opacity(0.55), Color.black.opacity(0.35)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .ignoresSafeArea()
+                        .transition(.opacity)
 
-                        overlayPanel
-                            .padding(18)
-                            .transition(.scale .combined(with: .opacity))
+                        // Full-frame interstitial that lives inside the MGZ frame
+                        interstitialOverlay
+                            .padding(.horizontal, 22)
+                            .padding(.vertical, 18)
+                            .transition(.scale.combined(with: .opacity))
                             .zIndex(1)
                     }
                 }
@@ -80,12 +88,10 @@ struct ContentView: View {
                 .position(x: lzSize.width + czSize.width / 2, y: mgzSize.height - czSize.height / 2)
 
             // Right Zone (RZ) – make same height as CZ and align its top to the top of CZ
-            
             rightZone
                 .frame(width: rzSize.width, height: czSize.height)
                 .position(x: lzSize.width + czSize.width + rzSize.width / 2,
                           y: mgzSize.height - czSize.height / 2)
-                
         }
     }
 
@@ -103,7 +109,6 @@ struct ContentView: View {
                 .minimumScaleFactor(0.8)
                 .frame(width: 100, alignment: .center)
                 .foregroundStyle(.white)
-                
 
             // Score chart
             bonusLegend
@@ -290,7 +295,6 @@ struct ContentView: View {
         let hexHeight = cfg.columns.hexTabHeight
         let (sum, _) = game.boardTotals()
 
-
         return VStack(alignment: .trailing, spacing: 10) {
             // Compact total hex chip — centered within RZ
             compactTotalBoxForRZ(hexWidth: hexWidth, hexHeight: hexHeight)
@@ -302,7 +306,7 @@ struct ContentView: View {
                 .minimumScaleFactor(0.8)
                 .frame(maxWidth: .infinity, alignment: .center)
                 .foregroundStyle(.white)
-            
+
             // Round scores 1–3
             topThreeScores
 
@@ -334,20 +338,16 @@ struct ContentView: View {
             pick21Logo
                 .frame(maxWidth: .infinity, alignment: .trailing)
         }
-        .frame(maxHeight: .infinity, alignment: .top) // <-- allow it to expand to the given height
-
+        .frame(maxHeight: .infinity, alignment: .top)
     }
 
-
     private var pick21Logo: some View {
-        // Replace placeholder with your asset image. Adjust sizing as needed.
         Image("Pick21Logo-white")
             .resizable()
             .scaledToFit()
-            .frame(height: 40) // tweak height to fit your design
+            .frame(height: 40)
             .padding(.horizontal, 8)
             .padding(.vertical, 0)
-            
     }
 
     private func compactTotalBoxForRZ(hexWidth: CGFloat? = nil, hexHeight: CGFloat? = nil) -> some View {
@@ -444,7 +444,6 @@ struct ContentView: View {
         }
         .padding(.horizontal, 6)
         .padding(.vertical, 4)
-
         .overlay(
             RoundedRectangle(cornerRadius: 11)
                 .stroke(Color(.sRGB, white: 0, opacity: 0.25), lineWidth: 1.5)
@@ -484,7 +483,7 @@ struct ContentView: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 10)
-                .stroke(Color.white.opacity(0.5), lineWidth: 3) // updated to 3pt white at 50% opacity
+                .stroke(Color.white.opacity(0.5), lineWidth: 3)
         )
     }
 
@@ -510,9 +509,7 @@ struct ContentView: View {
     private var topThreeScores: some View {
         VStack(alignment: .trailing, spacing: 6) {
             ForEach(0..<3, id: \.self) { i in
-                // Full-width blue chip that fills rightZone width
                 HStack(spacing: 8) {
-                    // Round number circle inside the blue box on the left
                     ZStack {
                         Circle()
                             .fill(Color.yellow.opacity(1))
@@ -523,7 +520,6 @@ struct ContentView: View {
                     .frame(width: 22, height: 22)
                     .padding(.leading, -3)
 
-                    // Score text aligned to the trailing edge within the chip
                     Text(game.roundScores[i].formatted())
                         .font(.subheadline.monospacedDigit())
                         .foregroundStyle(.primary)
@@ -567,7 +563,177 @@ struct ContentView: View {
             .background(Capsule().fill(pillBackground))
     }
 
-    // MARK: - Overlay Panels
+    // MARK: - Interstitials (Full-frame overlays)
+    @ViewBuilder
+    private var interstitialOverlay: some View {
+        GeometryReader { geo in
+            let w = geo.size.width
+            let h = geo.size.height
+
+            // Build dynamic header text
+            let headerText: String = {
+                if game.phase == .gameOver {
+                    return "Game Over"
+                } else {
+                    let (sum, busted) = game.boardTotals()
+                    if busted {
+                        return "Round \(game.round): BUST"
+                    } else {
+                        return "Round \(game.round): \(sum)"
+                    }
+                }
+            }()
+
+            let header = HStack(spacing: 10) {
+                Image(systemName: game.phase == .gameOver ? "flag.checkered" : "rosette")
+                    .font(.system(size: min(w, h) * 0.06, weight: .bold))
+                    .foregroundStyle(.white)
+                Text(headerText)
+                    .font(.system(size: min(w, h) * 0.075, weight: .heavy, design: .rounded))
+                    .foregroundStyle(.white)
+            }
+            .padding(.horizontal, 18)
+            .padding(.vertical, 10)
+            .background(
+                Capsule()
+                    .fill(Color.blue.opacity(0.95))
+                    .overlay(Capsule().stroke(Color.white.opacity(0.2), lineWidth: 1))
+            )
+
+            VStack(spacing: 16) {
+                header
+
+                if game.phase == .betweenRounds {
+                    betweenRoundsContent
+                } else {
+                    gameOverContent
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.horizontal, w * 0.08)
+            .padding(.vertical, h * 0.08)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(Color.white.opacity(0.25), lineWidth: 1)
+                    )
+            )
+            .shadow(color: .black.opacity(0.35), radius: 24, x: 0, y: 12)
+            .frame(width: w, height: h, alignment: .center)
+        }
+    }
+
+    private var betweenRoundsContent: some View {
+        VStack(spacing: 14) {
+            Text("Round Score")
+                .font(.system(.title3, design: .rounded).weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            Text("\(game.roundScores[max(0, game.round - 1)])")
+                .font(.system(size: 48, weight: .heavy, design: .rounded))
+                .monospacedDigit()
+
+            HStack(spacing: 18) {
+                Button {
+                    game.nextRound()
+                } label: {
+                    Label("Start Next Round", systemImage: "play.fill")
+                        .font(.headline.weight(.semibold))
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 12)
+                        .background(
+                            Capsule().fill(Color.green.opacity(0.95))
+                        )
+                        .foregroundStyle(.white)
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    game.startNewGame()
+                } label: {
+                    Label("Restart", systemImage: "arrow.counterclockwise")
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(
+                            Capsule().fill(Color.white.opacity(0.2))
+                        )
+                        .foregroundStyle(.white)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.top, 6)
+        }
+        .multilineTextAlignment(.center)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
+    }
+
+    private var gameOverContent: some View {
+        VStack(spacing: 14) {
+            Text("Final Score")
+                .font(.system(.title3, design: .rounded).weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            Text("\(game.totalScore)")
+                .font(.system(size: 52, weight: .heavy, design: .rounded))
+                .monospacedDigit()
+
+            if game.isNewHighScore {
+                Label("New High Score!", systemImage: "star.fill")
+                    .foregroundStyle(.yellow)
+                    .font(.headline.weight(.bold))
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Round Details")
+                    .font(.headline)
+                ForEach(0..<3, id: \.self) { i in
+                    HStack {
+                        Text("Round \(i + 1)")
+                        Spacer()
+                        Text("\(game.roundScores[i])").monospacedDigit()
+                    }
+                }
+            }
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.white.opacity(0.12))
+            )
+
+            ScrollView {
+                HighScoresView(entries: game.highScores.entries)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 2)
+            }
+            .frame(maxHeight: 180)
+
+            HStack(spacing: 18) {
+                Button {
+                    game.startNewGame()
+                } label: {
+                    Label("Play Again", systemImage: "arrow.triangle.2.circlepath")
+                        .font(.headline.weight(.semibold))
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 12)
+                        .background(
+                            Capsule().fill(Color.green.opacity(0.95))
+                        )
+                        .foregroundStyle(.white)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.top, 4)
+        }
+        .multilineTextAlignment(.center)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
+    }
+
+    // MARK: - Overlay Panels (legacy accessors kept but unused internally)
     @ViewBuilder
     private var overlayPanel: some View {
         if game.phase == .betweenRounds {
@@ -583,11 +749,6 @@ struct ContentView: View {
                 .font(.title3.weight(.bold))
             Text("Score: \(game.roundScores[game.round - 1])")
                 .font(.headline)
-            if game.roundEndReason != .none {
-                Text(roundEndText)
-                    .foregroundStyle(.orange)
-                    .font(.subheadline)
-            }
             Button("Start Next Round") { game.nextRound() }
                 .buttonStyle(.borderedProminent)
                 .padding(.top, 4)
@@ -630,16 +791,6 @@ struct ContentView: View {
         .padding(18)
         .background(RoundedRectangle(cornerRadius: 14).fill(.ultraThinMaterial))
     }
-
-    private var roundEndText: String {
-        switch game.roundEndReason {
-        case .bust: return "Round over: Bust"
-        case .tookScore: return "Round over: Score taken"
-        case .perfectBoard: return "Round over: Perfect board!"
-        case .timerExpired: return "Round over: Time up"
-        default: return ""
-        }
-    }
 }
 
 // MARK: - Layout Metrics driven by LayoutConfig
@@ -656,13 +807,7 @@ private struct LayoutMetrics {
     var columnPaddingFraction: CGFloat { cfg.columns.columnPaddingFraction } // already a fraction
     var overlapFraction: CGFloat { cfg.columns.overlapFraction }
 
-    // Computed dimensions to exactly fill CZ without outer padding
-    // 1) Height-constrained card width: ensure five-card stack + padding == availableHeight
-    //    H + 4*(H*overlap) + 2*pad == availableHeight
-    //    Let pad = columnPaddingFraction * W, and H = W * aspect
-    //    => (W*aspect) * (1 + 4*overlap) + 2*(columnPaddingFraction * W) == availableHeight
-    //    => W * [aspect * (1 + 4*overlap) + 2*columnPaddingFraction] == availableHeight
-    //    => W_h = availableHeight / denom
+    // Height-constrained card width
     var heightConstrainedCardWidth: CGFloat {
         let aspect = cfg.cards.aspect
         let denom = aspect * (1 + 4 * overlapFraction) + 2 * columnPaddingFraction
@@ -670,8 +815,7 @@ private struct LayoutMetrics {
         return availableHeight / denom
     }
 
-    // 2) Width-constrained card width: five columns + chrome + spacings == availableWidth
-    //    Column frame width = max(W + 2*pad, W + minColumnChrome)
+    // Width-constrained card width
     var widthConstrainedCardWidth: CGFloat {
         var w = min(maxCardWidth, max(minCardWidth, availableWidth / 7.0))
         for _ in 0..<8 {
@@ -719,7 +863,6 @@ private struct HexTab: Shape {
     }
 }
 
-// HighScoresView unchanged
 struct HighScoresView: View {
     let entries: [HighScoreEntry]
     private let dateFormatter: DateFormatter = {
