@@ -697,7 +697,7 @@ struct ContentView: View {
         VStack(spacing: 14) {
             Text("Final Score")
                 .font(.system(.title3, design: .rounded).weight(.semibold))
-                .foregroundStyle(.secondary)
+                //.foregroundStyle(.secondary)
 
             Text("\(game.totalScore)")
                 .font(.system(size: 42, weight: .heavy, design: .rounded))
@@ -725,13 +725,6 @@ struct ContentView: View {
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Color.white.opacity(0.12))
             )
-
-            ScrollView {
-                HighScoresView(entries: game.highScores.entries)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 2)
-            }
-            .frame(maxHeight: 130)
 
             HStack(spacing: 18) {
                 Button {
@@ -815,12 +808,6 @@ struct ContentView: View {
 
             Divider().padding(.vertical, 4)
 
-            ScrollView {
-                HighScoresView(entries: game.highScores.entries)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .frame(maxHeight: 200)
-
             Button("Play Again") { game.startNewGame() }
                 .buttonStyle(.borderedProminent)
         }
@@ -875,7 +862,7 @@ private struct PreGameView: View {
                     Button {
                         showingHighScores = true
                     } label: {
-                        Label("View High Scores", systemImage: "trophy.fill")
+                        Label("View High Scores", systemImage: "trophy fill")
                             .font(.system(size: 18, weight: .semibold, design: .rounded))
                             .padding(.horizontal, 22)
                             .padding(.vertical, 12)
@@ -954,41 +941,27 @@ private struct HighScoresSheet: View {
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 12) {
-                if entries.isEmpty {
-                    ContentUnavailableView("No High Scores", systemImage: "trophy", description: Text("Play a game to set your first high score."))
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    VStack(spacing: 8) {
-                        HStack {
-                            Text("Rank").font(.headline).frame(width: 60, alignment: .leading)
-                            Text("Score").font(.headline).frame(width: 120, alignment: .leading)
-                            Text("Date").font(.headline).frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        .padding(.vertical, 4)
-
-                        ForEach(Array(entries.enumerated()), id: \.element.id) { idx, entry in
-                            HStack {
-                                Text("#\(idx + 1)")
-                                    .frame(width: 60, alignment: .leading)
-                                Text(entry.score.formatted())
-                                    .monospacedDigit()
-                                    .frame(width: 120, alignment: .leading)
-                                Text(dateFormatter.string(from: entry.date))
-                                    .foregroundStyle(.secondary)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                            .padding(.vertical, 6)
-                            .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color(.secondarySystemBackground))
-                            )
-                        }
+            // Top-aligned content with minimal top padding so the title sits closer to the top
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 12) {
+                    if entries.isEmpty {
+                        ContentUnavailableView("No High Scores", systemImage: "trophy", description: Text("Play a game to set your first high score."))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 8)
+                    } else {
+                        // Use compact sizing to fit 10 rows
+                        HighScoresView(
+                            entries: entries,
+                            baseFontSize: 20,
+                            rowVPadding: 0.5,
+                            headerSpacing: 3
+                        )
                     }
-                    .padding(.horizontal, 12)
                 }
+                .padding(.top, 8) // tighter top gap under the nav bar title
+                .padding(.horizontal, 16)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
             }
-            .padding()
             .navigationTitle("High Scores")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -1120,6 +1093,11 @@ private struct HexTab: Shape {
 
 struct HighScoresView: View {
     let entries: [HighScoreEntry]
+    // Configurable compactness
+    var baseFontSize: CGFloat = 20   // bumped up for better legibility
+    var rowVPadding: CGFloat = 4     // taller rows
+    var headerSpacing: CGFloat = 6
+
     private let dateFormatter: DateFormatter = {
         let df = DateFormatter()
         df.dateStyle = .short
@@ -1127,23 +1105,77 @@ struct HighScoresView: View {
         return df
     }()
 
+    // Compact, non-scrolling matrix directly under the title
     var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text("High Scores")
-                .font(.headline)
+        let maxRows = 10
+        let shown = Array(entries.prefix(maxRows))
+        let placeholderCount = max(0, maxRows - shown.count)
+
+        VStack(alignment: .leading, spacing: headerSpacing) {
             if entries.isEmpty {
                 Text("No scores yet.")
+                    .font(.system(size: baseFontSize, weight: .regular, design: .rounded))
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(entries) { entry in
-                    HStack(spacing: 8) {
-                        Text("\(entry.score)")
-                            .frame(width: 90, alignment: .leading)
-                        Text(dateFormatter.string(from: entry.date))
-                            .foregroundStyle(.secondary)
+                VStack(spacing: max(0, rowVPadding)) {
+                    // Header with three equal-width columns
+                    HStack(spacing: 12) {
+                        Text("Rank")
+                            .font(.system(size: baseFontSize, weight: .semibold, design: .rounded))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                        Text("Score")
+                            .font(.system(size: baseFontSize, weight: .semibold, design: .rounded))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                        Text("Date")
+                            .font(.system(size: baseFontSize, weight: .semibold, design: .rounded))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+
+                    // Real rows
+                    ForEach(Array(shown.enumerated()), id: \.element.id) { idx, entry in
+                        rowView(rank: idx + 1,
+                                scoreText: entry.score.formatted(),
+                                dateText: dateFormatter.string(from: entry.date),
+                                isPlaceholder: false)
+                    }
+
+                    // Placeholder rows to fill up to 10
+                    ForEach(0..<placeholderCount, id: \.self) { idx in
+                        rowView(rank: shown.count + idx + 1,
+                                scoreText: "—",
+                                dateText: "—",
+                                isPlaceholder: true)
                     }
                 }
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private func rowView(rank: Int, scoreText: String, dateText: String, isPlaceholder: Bool) -> some View {
+        HStack(spacing: 12) {
+            Text("#\(rank)")
+                .font(.system(size: baseFontSize, weight: .regular, design: .rounded))
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text(scoreText)
+                .font(.system(size: baseFontSize, weight: .regular, design: .rounded))
+                .monospacedDigit()
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text(dateText)
+                .font(.system(size: baseFontSize, weight: .regular, design: .rounded))
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.vertical, max(0, rowVPadding))
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(.secondarySystemBackground).opacity(isPlaceholder ? 0.45 : 0.8))
+        )
+        .opacity(isPlaceholder ? 0.7 : 1.0)
     }
 }
