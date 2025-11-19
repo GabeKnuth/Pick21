@@ -6,16 +6,8 @@ struct Pick21SolitaireApp: App {
     @StateObject private var layoutConfig = LayoutConfig()
 
     init() {
-        // Customize default background style here
-        // e.g., a solid color:
-        // layoutConfig.backgroundStyle = .solid(.black)
-
-        // or a gradient:
-        // layoutConfig.backgroundStyle = .linearGradient(
-        //     colors: [.purple, .black],
-        //     start: .topLeading,
-        //     end: .bottomTrailing
-        // )
+        // Show the "bg" asset as the app-wide background
+        layoutConfig.backgroundStyle = .image(name: "bg", contentMode: .fill, opacity: 1.0)
     }
 
     var body: some Scene {
@@ -26,3 +18,4 @@ struct Pick21SolitaireApp: App {
         }
     }
 }
+

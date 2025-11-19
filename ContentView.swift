@@ -15,8 +15,15 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            configurableBackground
-                .ignoresSafeArea()
+            // Force the bg image as the background
+            GeometryReader { geo in
+                Image("bg")
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: geo.size.width, height: geo.size.height)
+                    .clipped()
+            }
+            .ignoresSafeArea()
 
             GeometryReader { proxy in
                 // Treat coordinate system as landscape-left: X increases to the right, Y increases down.
@@ -37,7 +44,7 @@ struct ContentView: View {
 
                         overlayPanel
                             .padding(18)
-                            .transition(.scale.combined(with: .opacity))
+                            .transition(.scale .combined(with: .opacity))
                             .zIndex(1)
                     }
                 }
@@ -47,21 +54,6 @@ struct ContentView: View {
         }
         .animation(.easeInOut(duration: 0.22), value: showingOverlay)
         .ignoresSafeArea()
-    }
-
-    // MARK: - Configurable Background
-    @ViewBuilder
-    private var configurableBackground: some View {
-        switch cfg.backgroundStyle {
-        case .solid(let color):
-            color
-        case .linearGradient(let colors, let start, let end):
-            LinearGradient(colors: colors, startPoint: start, endPoint: end)
-        case .radialGradient(let colors, let center, let startRadius, let endRadius):
-            RadialGradient(colors: colors, center: center, startRadius: startRadius, endRadius: endRadius)
-        case .angularGradient(let colors, let center, let angle):
-            AngularGradient(colors: colors, center: center, angle: angle)
-        }
     }
 
     // MARK: - Derived
@@ -110,6 +102,7 @@ struct ContentView: View {
                 .font(.system(.title3, design: .rounded).weight(.bold))
                 .minimumScaleFactor(0.8)
                 .frame(width: 100, alignment: .center)
+                .foregroundStyle(.white)
                 
 
             // Score chart
@@ -123,6 +116,7 @@ struct ContentView: View {
     private var topZone: some View {
         HStack(spacing: 0) {
             // Pass
+            let isPassEnabled = (game.phase == .inRound && game.passAvailable)
             Button {
                 game.usePass()
             } label: {
@@ -131,10 +125,19 @@ struct ContentView: View {
                     .padding(.horizontal, 16)
                     .padding(.vertical, 9)
                     .frame(minWidth: 88)
-                    .background(Capsule().fill(Color.green.opacity(game.passAvailable && game.phase == .inRound && game.currentCard != nil ? 0.92 : 0.35)))
-                    .foregroundStyle(.white)
+                    .background(
+                        Capsule()
+                            .fill(
+                                Color.green.opacity(isPassEnabled ? 0.92 : 0.05)
+                            )
+                    )
+                    .foregroundStyle(
+                        Color.white.opacity(isPassEnabled ? 1.0 : 0.55)
+                    )
             }
-            .disabled(!(game.phase == .inRound && game.passAvailable && game.currentCard != nil))
+            .buttonStyle(.plain)                // remove default press highlight
+            .animation(nil, value: isPassEnabled) // prevent implicit anim on enablement change
+            .disabled(!isPassEnabled)
             .padding(.trailing, 20)
 
             // Timer
@@ -227,8 +230,8 @@ struct ContentView: View {
 
     private func strokeWidth(for base: Color) -> CGFloat {
         // Slightly thicker when locked, medium for soft, thin otherwise
-        if base == .green { return 2.5 }
-        if base == .yellow { return 2.5 }
+        if base == .green { return 3.5 }
+        if base == .yellow { return 3.5 }
         return 1.0
     }
 
@@ -285,6 +288,8 @@ struct ContentView: View {
         )
         let hexWidth = max(cfg.columns.hexTabMinWidth, layout.cardWidth * 0.62)
         let hexHeight = cfg.columns.hexTabHeight
+        let (sum, _) = game.boardTotals()
+
 
         return VStack(alignment: .trailing, spacing: 10) {
             // Compact total hex chip — centered within RZ
@@ -296,6 +301,7 @@ struct ContentView: View {
                 .font(.system(.headline, design: .rounded).weight(.bold))
                 .minimumScaleFactor(0.8)
                 .frame(maxWidth: .infinity, alignment: .center)
+                .foregroundStyle(.white)
             
             // Round scores 1–3
             topThreeScores
@@ -304,9 +310,12 @@ struct ContentView: View {
             Button {
                 game.takeScore()
             } label: {
-                Text("Take Score")
+                Text("Take Score:\n \(sum)")
                     .font(.headline.weight(.semibold))
                     .frame(maxWidth: .infinity)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
                     .padding(.vertical, 20)
                     .padding(.horizontal, 14)
                     .background(
@@ -332,13 +341,13 @@ struct ContentView: View {
 
     private var pick21Logo: some View {
         // Replace placeholder with your asset image. Adjust sizing as needed.
-        Image("Pick21Logo")
+        Image("Pick21Logo-white")
             .resizable()
             .scaledToFit()
             .frame(height: 40) // tweak height to fit your design
             .padding(.horizontal, 8)
             .padding(.vertical, 0)
-            .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.12)))
+            
     }
 
     private func compactTotalBoxForRZ(hexWidth: CGFloat? = nil, hexHeight: CGFloat? = nil) -> some View {
@@ -435,10 +444,7 @@ struct ContentView: View {
         }
         .padding(.horizontal, 6)
         .padding(.vertical, 4)
-        .background(
-            RoundedRectangle(cornerRadius: 11)
-                .fill(Color.blue.opacity(0.9))
-        )
+
         .overlay(
             RoundedRectangle(cornerRadius: 11)
                 .stroke(Color(.sRGB, white: 0, opacity: 0.25), lineWidth: 1.5)
@@ -478,7 +484,7 @@ struct ContentView: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 10)
-                .stroke(Color.white.opacity(0.07), lineWidth: 1)
+                .stroke(Color.white.opacity(0.5), lineWidth: 3) // updated to 3pt white at 50% opacity
         )
     }
 
@@ -509,12 +515,13 @@ struct ContentView: View {
                     // Round number circle inside the blue box on the left
                     ZStack {
                         Circle()
-                            .fill(Color.yellow.opacity(0.95))
+                            .fill(Color.yellow.opacity(1))
                         Text("\(i + 1)")
                             .font(.caption.weight(.bold))
                             .foregroundStyle(.black)
                     }
                     .frame(width: 22, height: 22)
+                    .padding(.leading, -3)
 
                     // Score text aligned to the trailing edge within the chip
                     Text(game.roundScores[i].formatted())
@@ -527,7 +534,7 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity, alignment: .trailing)
                 .background(
                     RoundedRectangle(cornerRadius: 9)
-                        .fill(Color.blue.opacity(0.14))
+                        .fill(Color.white.opacity(0.45))
                 )
             }
         }

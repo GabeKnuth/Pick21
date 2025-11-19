@@ -13,6 +13,24 @@ final class LayoutConfig: ObservableObject {
         case linearGradient(colors: [Color], start: UnitPoint, end: UnitPoint)
         case radialGradient(colors: [Color], center: UnitPoint, startRadius: CGFloat, endRadius: CGFloat)
         case angularGradient(colors: [Color], center: UnitPoint, angle: Angle)
+        case image(name: String, contentMode: ContentMode = .fill, opacity: CGFloat = 1.0)
+
+        static func == (lhs: BackgroundStyle, rhs: BackgroundStyle) -> Bool {
+            switch (lhs, rhs) {
+            case let (.solid(a), .solid(b)):
+                return a == b
+            case let (.linearGradient(ca, sa, ea), .linearGradient(cb, sb, eb)):
+                return ca == cb && sa == sb && ea == eb
+            case let (.radialGradient(ca, centra, sra, era), .radialGradient(cb, centrb, srb, erb)):
+                return ca == cb && centra == centrb && sra == srb && era == erb
+            case let (.angularGradient(ca, centra, aa), .angularGradient(cb, centrb, ab)):
+                return ca == cb && centra == centrb && aa == ab
+            case let (.image(na, modeA, opa), .image(nb, modeB, opb)):
+                return na == nb && modeA == modeB && opa == opb
+            default:
+                return false
+            }
+        }
     }
     @Published var backgroundStyle: BackgroundStyle = .solid(.white)
     
