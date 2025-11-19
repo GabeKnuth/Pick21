@@ -489,6 +489,7 @@ struct ContentView: View {
         }
         .frame(width: 100, alignment: .leading) // match shoe card width
         .padding(2)
+        .minimumScaleFactor(0.85)
         .background(
             RoundedRectangle(cornerRadius: 10)
                 .fill(Color.black.opacity(0.88))
@@ -626,7 +627,7 @@ struct ContentView: View {
             .padding(.vertical, h * 0.06)
             .background(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(.ultraThinMaterial)
+                    .fill(.ultraThinMaterial.opacity(0.9))
                     .overlay(
                         RoundedRectangle(cornerRadius: 16, style: .continuous)
                             .stroke(Color.white.opacity(0.25), lineWidth: 1)
@@ -641,7 +642,8 @@ struct ContentView: View {
         VStack(spacing: 14) {
             Text("Round Score")
                 .font(.system(.title3, design: .rounded).weight(.semibold))
-                .foregroundStyle(.secondary)
+                //.foregroundStyle(.secondary)
+                .foregroundStyle(.black)
 
             Text("\(game.roundScores[max(0, game.round - 1)])")
                 .font(.system(size: 40, weight: .heavy, design: .rounded))

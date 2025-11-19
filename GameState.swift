@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import UIKit
 
 @MainActor
 final class GameState: ObservableObject {
@@ -68,6 +69,11 @@ final class GameState: ObservableObject {
         let (score, _) = calculateRoundScore()
         roundScores[round - 1] = score
         totalScore += score
+
+        // Haptics: celebrate perfect board (covers 105 case during finalization)
+        if reason == .perfectBoard {
+            celebrateHaptics()
+        }
 
         // Transition phase
         if round < 3 {
@@ -146,6 +152,8 @@ final class GameState: ObservableObject {
         // NEW: Auto-end when board total reaches 105, even if some columns are soft (not locked)
         let (sum, _) = boardTotals()
         if sum == 105 {
+            // Haptics: celebrate immediately when 105 is achieved
+            celebrateHaptics()
             endRound(reason: .perfectBoard)
             return
         }
@@ -227,6 +235,13 @@ final class GameState: ObservableObject {
         guard let mult = multiplier(for: sum) else { return (0, sum) }
         let score = max(0, timerValue) * mult
         return (score, sum)
+    }
+
+    // MARK: - Haptics
+    private func celebrateHaptics() {
+        let generator = UINotificationFeedbackGenerator()
+        generator.prepare()
+        generator.notificationOccurred(.success)
     }
 }
 
