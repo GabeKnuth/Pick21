@@ -11,11 +11,14 @@ final class GameState: ObservableObject {
     @Published var totalScore: Int = 0
     @Published var roundScores: [Int] = [0, 0, 0]
     @Published var roundEndReason: RoundEndReason = .none
-    @Published var phase: GamePhase = .inRound
+    @Published var phase: GamePhase = .preGame
     @Published var timerValue: Int = 280
     @Published var passAvailable: Bool = true
     @Published var isNewHighScore: Bool = false
     @Published var highScores: ScoreTable = HighScoresStorage.load()
+
+    // Settings
+    @Published var hapticsEnabled: Bool = true
 
     // NEW: configurable number of decks in the shoe
     // Set this to 1 for the original feel, or 4 for longer rounds.
@@ -33,7 +36,8 @@ final class GameState: ObservableObject {
 
     // MARK: - Init
     init() {
-        startNewGame()
+        // Start in pre-game. No automatic startNewGame to let the user press Play.
+        // If you want to auto-continue an unfinished game later, this is the place to load it.
     }
 
     // MARK: - Game Lifecycle
@@ -79,11 +83,19 @@ final class GameState: ObservableObject {
         if round < 3 {
             phase = .betweenRounds
         } else {
-            phase = .gameOver
-            // Save to high scores
+            // Compute and persist high score status before triggering haptics
             let isTop = highScores.insert(score: totalScore)
             isNewHighScore = isTop
             HighScoresStorage.save(highScores)
+
+            // Haptics: when game over interstitial will show
+            if isNewHighScore {
+                celebrateHaptics() // celebratory tick
+            } else {
+                gameOverHaptics()  // simple “game over” tick
+            }
+
+            phase = .gameOver
         }
     }
 
@@ -91,6 +103,11 @@ final class GameState: ObservableObject {
         guard phase == .betweenRounds else { return }
         round += 1
         startRound()
+    }
+
+    func returnToPreGame() {
+        stopTimer()
+        phase = .preGame
     }
 
     // MARK: - Shoe / Cards
@@ -237,11 +254,27 @@ final class GameState: ObservableObject {
         return (score, sum)
     }
 
+    // MARK: - High Scores
+    func clearHighScores() {
+        highScores.entries.removeAll()
+        HighScoresStorage.save(highScores)
+        isNewHighScore = false
+    }
+
     // MARK: - Haptics
     private func celebrateHaptics() {
+        guard hapticsEnabled else { return }
         let generator = UINotificationFeedbackGenerator()
         generator.prepare()
         generator.notificationOccurred(.success)
+    }
+
+    private func gameOverHaptics() {
+        guard hapticsEnabled else { return }
+        // A simple, noticeable tick for non-high-score game over
+        let generator = UINotificationFeedbackGenerator()
+        generator.prepare()
+        generator.notificationOccurred(.warning)
     }
 }
 
@@ -266,3 +299,4 @@ enum HighScoresStorage {
         }
     }
 }
+

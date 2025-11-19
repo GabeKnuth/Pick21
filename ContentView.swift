@@ -25,39 +25,46 @@ struct ContentView: View {
             }
             .ignoresSafeArea()
 
-            GeometryReader { proxy in
-                // Treat coordinate system as landscape-left: X increases to the right, Y increases down.
-                // MGZ is placed mgzOffsetFromLeft from the “left/top” edge in landscape-left, which is x = mgzOffsetFromLeft, y = 0.
-                let mgzOrigin = CGPoint(x: mgzOffsetFromLeft, y: 0)
+            if game.phase == .preGame {
+                PreGameView()
+                    .environmentObject(game)
+                    .environmentObject(cfg)
+                    .transition(.opacity)
+            } else {
+                GeometryReader { proxy in
+                    // Treat coordinate system as landscape-left: X increases to the right, Y increases down.
+                    // MGZ is placed mgzOffsetFromLeft from the “left/top” edge in landscape-left, which is x = mgzOffsetFromLeft, y = 0.
+                    let mgzOrigin = CGPoint(x: mgzOffsetFromLeft, y: 0)
 
-                // Build MGZ container with fixed size
-                ZStack {
-                    // Board layer within MGZ: LZ, TZ, CZ, RZ
-                    zonesInMGZ()
-                        .allowsHitTesting(!showingOverlay)
-                        .blur(radius: showingOverlay ? 1.0 : 0)
+                    // Build MGZ container with fixed size
+                    ZStack {
+                        // Board layer within MGZ: LZ, TZ, CZ, RZ
+                        zonesInMGZ()
+                            .allowsHitTesting(!showingOverlay)
+                            .blur(radius: showingOverlay ? 1.0 : 0)
 
-                    // Overlay layer centered within MGZ
-                    if showingOverlay {
-                        // Dimmed background over board
-                        LinearGradient(
-                            colors: [Color.black.opacity(0.55), Color.black.opacity(0.35)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                        .ignoresSafeArea()
-                        .transition(.opacity)
+                        // Overlay layer centered within MGZ
+                        if showingOverlay {
+                            // Dimmed background over board
+                            LinearGradient(
+                                colors: [Color.black.opacity(0.55), Color.black.opacity(0.35)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                            .ignoresSafeArea()
+                            .transition(.opacity)
 
-                        // Full-frame interstitial that lives inside the MGZ frame
-                        interstitialOverlay
-                            .padding(.horizontal, 22)
-                            .padding(.vertical, 18)
-                            .transition(.scale.combined(with: .opacity))
-                            .zIndex(1)
+                            // Full-frame interstitial that lives inside the MGZ frame
+                            interstitialOverlay
+                                .padding(.horizontal, 22)
+                                .padding(.vertical, 18)
+                                .transition(.scale.combined(with: .opacity))
+                                .zIndex(1)
+                        }
                     }
+                    .frame(width: mgzSize.width, height: mgzSize.height, alignment: .topLeading)
+                    .position(x: mgzOrigin.x + mgzSize.width / 2, y: mgzOrigin.y + mgzSize.height / 2)
                 }
-                .frame(width: mgzSize.width, height: mgzSize.height, alignment: .topLeading)
-                .position(x: mgzOrigin.x + mgzSize.width / 2, y: mgzOrigin.y + mgzSize.height / 2)
             }
         }
         .animation(.easeInOut(duration: 0.22), value: showingOverlay)
@@ -175,10 +182,12 @@ struct ContentView: View {
                     let canTap = game.phase == .inRound && !col.isLocked && game.currentCard != nil
 
                     VStack(spacing: 6) {
-                        // Chip (hex-tab style) — keep its size, centered to column
+                        // Chip (hex-tab style) — outline changes color by state; fill stays transparent
+                        let hexStroke = hexTabStrokeColor(for: col)
+
                         HexTab()
-                            .fill(Color.blue.opacity(0))
-                            .overlay(HexTab().stroke(Color(.sRGB, white: 1, opacity: 0.5), lineWidth: 3))
+                            .fill(Color.clear)
+                            .overlay(HexTab().stroke(hexStroke, lineWidth: 3))
                             .frame(width: max(cfg.columns.hexTabMinWidth, layout.cardWidth * 0.62), height: cfg.columns.hexTabHeight)
                             .overlay(
                                 Text("\(col.total)")
@@ -252,6 +261,15 @@ struct ContentView: View {
         return cfg.columns.columnFillNormalColor.opacity(cfg.columns.columnFillOpacity)
     }
 
+    // Outline color for the hex tab only (fill remains transparent)
+    private func hexTabStrokeColor(for col: Column) -> Color {
+        // Make the hex outline match the bottom pill fill color exactly.
+        return columnPillBackgroundColor(for: col)
+        // If you prefer a slightly darker outline while still following the same base color,
+        // replace with:
+        // return darkerBorderColor(from: columnPillBackgroundColor(for: col)).opacity(0.9)
+    }
+
     private func columnStack(col: Column, layout: LayoutMetrics) -> some View {
         let W = layout.cardWidth
         let H = layout.cardHeight
@@ -263,7 +281,6 @@ struct ContentView: View {
 
         let pillColor = columnPillBackgroundColor(for: col)
         let strokeColor = darkerBorderColor(from: pillColor)
-            .opacity(cfg.columns.columnStrokeOpacity)
         let lineW = strokeWidth(for: pillColor)
         let fillColor = columnFillColor(for: col)
 
@@ -273,7 +290,7 @@ struct ContentView: View {
                 .fill(fillColor)
 
             RoundedRectangle(cornerRadius: cfg.columns.columnCornerRadius)
-                .strokeBorder(strokeColor, lineWidth: lineW)
+                .strokeBorder(strokeColor.opacity(cfg.columns.columnStrokeOpacity), lineWidth: lineW)
 
             VStack(spacing: 0) {
                 Spacer(minLength: columnPadding)
@@ -308,8 +325,6 @@ struct ContentView: View {
 
         return VStack(alignment: .trailing, spacing: 10) {
             // Compact total hex chip — centered within RZ
-            // compactTotalBoxForRZ(hexWidth: hexWidth, hexHeight: hexHeight)
-            //     .frame(maxWidth: .infinity, alignment: .center)
 
             // Round label
             Text("Round Scores")
@@ -325,15 +340,14 @@ struct ContentView: View {
             Button {
                 game.takeScore()
             } label: {
-                // Keep text single-line and allow slight downscaling to prevent wrap
                 Text("Take Score:\n \(sum)")
                     .font(.headline.weight(.semibold))
                     .lineLimit(2)
                     .minimumScaleFactor(0.85)
                     .allowsTightening(true)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)   // slightly reduced from 20
-                    .padding(.horizontal, 12) // slightly reduced from 14
+                    .padding(.vertical, 16)
+                    .padding(.horizontal, 12)
                     .background(
                         RoundedRectangle(cornerRadius: 11)
                             .fill(Color.green.opacity(
@@ -364,8 +378,6 @@ struct ContentView: View {
 
     private func compactTotalBoxForRZ(hexWidth: CGFloat? = nil, hexHeight: CGFloat? = nil) -> some View {
         let (sum, _) = game.boardTotals()
-
-        // If not provided, compute using CZ layout
         let layout = LayoutMetrics(availableWidth: czSize.width, availableHeight: czSize.height, cfg: cfg)
         let w = hexWidth ?? max(cfg.columns.hexTabMinWidth, layout.cardWidth * 0.62)
         let h = hexHeight ?? cfg.columns.hexTabHeight
@@ -394,7 +406,6 @@ struct ContentView: View {
             let badgeOverlap = h * cfg.hud.timerBadgeOverlapRatio
 
             ZStack(alignment: .leading) {
-                // Track
                 RoundedRectangle(cornerRadius: corner)
                     .fill(Color.black.opacity(0.9))
                     .overlay(
@@ -403,13 +414,11 @@ struct ContentView: View {
                     )
                     .clipShape(RoundedRectangle(cornerRadius: corner))
 
-                // Fill
                 RoundedRectangle(cornerRadius: corner)
                     .fill(LinearGradient(colors: [Color.green, Color.green.opacity(0.6)], startPoint: .leading, endPoint: .trailing))
                     .frame(width: max(0, fillWidth))
                     .clipShape(RoundedRectangle(cornerRadius: corner))
 
-                // Trailing value pill on top of the track
                 HStack {
                     Spacer(minLength: 0)
                     Text("\(max(0, game.timerValue))")
@@ -425,7 +434,6 @@ struct ContentView: View {
                         .padding(.trailing, h * cfg.hud.timerValuePillTrailingRatio)
                 }
 
-                // Clock badge overlapping left
                 ZStack {
                     Circle()
                         .fill(Color.white)
@@ -739,6 +747,20 @@ struct ContentView: View {
                         .foregroundStyle(.white)
                 }
                 .buttonStyle(.plain)
+
+                Button {
+                    game.returnToPreGame()
+                } label: {
+                    Label("Main Menu", systemImage: "rectangle.portrait.and.arrow.right")
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(
+                            Capsule().fill(Color.white.opacity(0.2))
+                        )
+                        .foregroundStyle(.white)
+                }
+                .buttonStyle(.plain)
             }
             .padding(.top, 4)
         }
@@ -807,21 +829,241 @@ struct ContentView: View {
     }
 }
 
+// MARK: - Pre-Game UI
+private struct PreGameView: View {
+    @EnvironmentObject var game: GameState
+    @EnvironmentObject var cfg: LayoutConfig
+
+    @State private var showingHighScores = false
+    @State private var showingSettings = false
+
+    var body: some View {
+        GeometryReader { geo in
+            let w = geo.size.width
+            let h = geo.size.height
+
+            VStack(spacing: 18) {
+                Spacer()
+
+                VStack(spacing: 8) {
+                    Image("Pick21Logo-white")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: min(80, h * 0.2))
+                        .shadow(radius: 6, y: 3)
+
+                }
+
+                Spacer()
+
+                VStack(spacing: 12) {
+                    Button {
+                        game.startNewGame()
+                    } label: {
+                        Label("Play", systemImage: "play.fill")
+                            .font(.system(size: 22, weight: .bold, design: .rounded))
+                            .padding(.horizontal, 28)
+                            .padding(.vertical, 14)
+                            .frame(maxWidth: 420)
+                            .background(
+                                Capsule().fill(Color.green.opacity(0.95))
+                            )
+                            .foregroundStyle(.white)
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        showingHighScores = true
+                    } label: {
+                        Label("View High Scores", systemImage: "trophy.fill")
+                            .font(.system(size: 18, weight: .semibold, design: .rounded))
+                            .padding(.horizontal, 22)
+                            .padding(.vertical, 12)
+                            .frame(maxWidth: 420)
+                            .background(
+                                Capsule().fill(Color.white.opacity(0.18))
+                            )
+                            .foregroundStyle(.white)
+                    }
+                    .buttonStyle(.plain)
+                    .sheet(isPresented: $showingHighScores) {
+                        HighScoresSheet(entries: game.highScores.entries)
+                    }
+
+                    Button {
+                        showingSettings = true
+                    } label: {
+                        Label("Settings", systemImage: "gearshape.fill")
+                            .font(.system(size: 18, weight: .semibold, design: .rounded))
+                            .padding(.horizontal, 22)
+                            .padding(.vertical, 12)
+                            .frame(maxWidth: 420)
+                            .background(
+                                Capsule().fill(Color.white.opacity(0.18))
+                            )
+                            .foregroundStyle(.white)
+                    }
+                    .buttonStyle(.plain)
+                    .sheet(isPresented: $showingSettings) {
+                        SettingsSheet(
+                            hapticsEnabled: $game.hapticsEnabled,
+                            deckCount: $game.deckCount,
+                            clearAction: { game.clearHighScores() }
+                        )
+                        .presentationDetents([.medium, .large])
+                    }
+                }
+
+                Spacer()
+
+                // Best score quick chip
+                let best = game.highScores.entries.first?.score ?? 0
+                HStack(spacing: 8) {
+                    Image(systemName: "trophy.fill")
+                        .foregroundStyle(.yellow)
+                    Text("Best: \(best.formatted())")
+                        .font(.headline.monospacedDigit())
+                        .foregroundStyle(.white)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(RoundedRectangle(cornerRadius: 12).fill(Color.black.opacity(0.35)))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.2), lineWidth: 1))
+
+                Spacer()
+            }
+            .frame(width: w, height: h)
+            .padding(.horizontal, 24)
+            .background(
+                Color.black.opacity(0.25)
+                    .ignoresSafeArea()
+            )
+        }
+    }
+}
+
+private struct HighScoresSheet: View {
+    let entries: [HighScoreEntry]
+    @Environment(\.dismiss) private var dismiss
+    private let dateFormatter: DateFormatter = {
+        let df = DateFormatter()
+        df.dateStyle = .medium
+        df.timeStyle = .none
+        return df
+    }()
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 12) {
+                if entries.isEmpty {
+                    ContentUnavailableView("No High Scores", systemImage: "trophy", description: Text("Play a game to set your first high score."))
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    VStack(spacing: 8) {
+                        HStack {
+                            Text("Rank").font(.headline).frame(width: 60, alignment: .leading)
+                            Text("Score").font(.headline).frame(width: 120, alignment: .leading)
+                            Text("Date").font(.headline).frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .padding(.vertical, 4)
+
+                        ForEach(Array(entries.enumerated()), id: \.element.id) { idx, entry in
+                            HStack {
+                                Text("#\(idx + 1)")
+                                    .frame(width: 60, alignment: .leading)
+                                Text(entry.score.formatted())
+                                    .monospacedDigit()
+                                    .frame(width: 120, alignment: .leading)
+                                Text(dateFormatter.string(from: entry.date))
+                                    .foregroundStyle(.secondary)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .padding(.vertical, 6)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color(.secondarySystemBackground))
+                            )
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                }
+            }
+            .padding()
+            .navigationTitle("High Scores")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Label("Back", systemImage: "chevron.left")
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct SettingsSheet: View {
+    @Binding var hapticsEnabled: Bool
+    @Binding var deckCount: Int
+    let clearAction: () -> Void
+
+    @State private var confirmClear = false
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Feedback") {
+                    Toggle("Haptics", isOn: $hapticsEnabled)
+                }
+
+                Section {
+                    Button(role: .destructive) {
+                        confirmClear = true
+                    } label: {
+                        Label("Clear High Scores", systemImage: "trash")
+                    }
+                }
+            }
+            .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Label("Back", systemImage: "chevron.left")
+                    }
+                }
+            }
+            .alert("Clear all high scores?",
+                   isPresented: $confirmClear) {
+                Button("Clear High Scores", role: .destructive) {
+                    clearAction()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This cannot be undone.")
+            }
+        }
+    }
+}
+
 // MARK: - Layout Metrics driven by LayoutConfig
 private struct LayoutMetrics {
     let availableWidth: CGFloat
     let availableHeight: CGFloat
     let cfg: LayoutConfig
 
-    // Derived from config
     var minCardWidth: CGFloat { cfg.s(cfg.cards.minWidth) }
     var maxCardWidth: CGFloat { cfg.s(cfg.cards.maxWidth) }
     var interColumnSpacing: CGFloat { cfg.s(cfg.columns.interColumnSpacing) }
     var minColumnChrome: CGFloat { cfg.s(cfg.columns.minColumnChrome) }
-    var columnPaddingFraction: CGFloat { cfg.columns.columnPaddingFraction } // already a fraction
+    var columnPaddingFraction: CGFloat { cfg.columns.columnPaddingFraction }
     var overlapFraction: CGFloat { cfg.columns.overlapFraction }
 
-    // Height-constrained card width
     var heightConstrainedCardWidth: CGFloat {
         let aspect = cfg.cards.aspect
         let denom = aspect * (1 + 4 * overlapFraction) + 2 * columnPaddingFraction
@@ -829,7 +1071,6 @@ private struct LayoutMetrics {
         return availableHeight / denom
     }
 
-    // Width-constrained card width
     var widthConstrainedCardWidth: CGFloat {
         var w = min(maxCardWidth, max(minCardWidth, availableWidth / 7.0))
         for _ in 0..<8 {

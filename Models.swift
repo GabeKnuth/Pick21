@@ -151,6 +151,7 @@ enum RoundEndReason: String, Codable {
 }
 
 enum GamePhase: Codable, Equatable {
+    case preGame
     case inRound
     case betweenRounds
     case gameOver
@@ -162,3 +163,4 @@ struct RoundResult: Identifiable, Codable {
     let score: Int
     let endReason: RoundEndReason
 }
+
