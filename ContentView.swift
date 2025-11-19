@@ -287,9 +287,16 @@ struct ContentView: View {
         let hexHeight = cfg.columns.hexTabHeight
 
         return VStack(alignment: .trailing, spacing: 10) {
-            // Compact total hex chip
+            // Compact total hex chip — centered within RZ
             compactTotalBoxForRZ(hexWidth: hexWidth, hexHeight: hexHeight)
+                .frame(maxWidth: .infinity, alignment: .center)
 
+            // Round label
+            Text("Round Scores")
+                .font(.system(.headline, design: .rounded).weight(.bold))
+                .minimumScaleFactor(0.8)
+                .frame(maxWidth: .infinity, alignment: .center)
+            
             // Round scores 1–3
             topThreeScores
 
@@ -300,7 +307,7 @@ struct ContentView: View {
                 Text("Take Score")
                     .font(.headline.weight(.semibold))
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 11)
+                    .padding(.vertical, 20)
                     .padding(.horizontal, 14)
                     .background(
                         RoundedRectangle(cornerRadius: 11)
@@ -311,8 +318,10 @@ struct ContentView: View {
                     .foregroundStyle(.white)
             }
             .disabled(!(game.phase == .inRound))
+            .padding(.vertical, 10)
+            .padding(.leading, 8)
 
-            // Pick21 Logo placeholder
+            // Pick21 Logo using asset
             pick21Logo
                 .frame(maxWidth: .infinity, alignment: .trailing)
         }
@@ -322,16 +331,14 @@ struct ContentView: View {
 
 
     private var pick21Logo: some View {
-        // Placeholder vector logo; replace with Image("Pick21Logo") if you add an asset
-        HStack(spacing: 6) {
-            Image(systemName: "suit.spade.fill")
-            Text("Pick21")
-                .font(.headline.weight(.bold))
-        }
-        .foregroundStyle(.primary)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
-        .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.12)))
+        // Replace placeholder with your asset image. Adjust sizing as needed.
+        Image("Pick21Logo")
+            .resizable()
+            .scaledToFit()
+            .frame(height: 40) // tweak height to fit your design
+            .padding(.horizontal, 8)
+            .padding(.vertical, 0)
+            .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.12)))
     }
 
     private func compactTotalBoxForRZ(hexWidth: CGFloat? = nil, hexHeight: CGFloat? = nil) -> some View {
@@ -497,24 +504,35 @@ struct ContentView: View {
     private var topThreeScores: some View {
         VStack(alignment: .trailing, spacing: 6) {
             ForEach(0..<3, id: \.self) { i in
-                HStack(spacing: 6) {
+                // Full-width blue chip that fills rightZone width
+                HStack(spacing: 8) {
+                    // Round number circle inside the blue box on the left
                     ZStack {
-                        Circle().fill(Color.yellow.opacity(0.95))
+                        Circle()
+                            .fill(Color.yellow.opacity(0.95))
                         Text("\(i + 1)")
                             .font(.caption.weight(.bold))
                             .foregroundStyle(.black)
                     }
                     .frame(width: 22, height: 22)
 
+                    // Score text aligned to the trailing edge within the chip
                     Text(game.roundScores[i].formatted())
                         .font(.subheadline.monospacedDigit())
                         .foregroundStyle(.primary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 5)
-                        .background(RoundedRectangle(cornerRadius: 9).fill(Color.blue.opacity(0.14)))
+                        .frame(maxWidth: .infinity, alignment: .trailing)
                 }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .background(
+                    RoundedRectangle(cornerRadius: 9)
+                        .fill(Color.blue.opacity(0.14))
+                )
             }
         }
+        .frame(maxWidth: .infinity, alignment: .trailing)
+        .padding(.leading, 6)
     }
 
     private func bottomStatusPill(for col: Column) -> some View {
@@ -647,10 +665,7 @@ private struct LayoutMetrics {
 
     // 2) Width-constrained card width: five columns + chrome + spacings == availableWidth
     //    Column frame width = max(W + 2*pad, W + minColumnChrome)
-    //    We’ll assume W + 2*pad dominates (common case), but take max with chrome to be safe.
     var widthConstrainedCardWidth: CGFloat {
-        // We can solve iteratively since pad depends on W.
-        // Use a small fixed-point iteration to converge.
         var w = min(maxCardWidth, max(minCardWidth, availableWidth / 7.0))
         for _ in 0..<8 {
             let pad = max(8, w * columnPaddingFraction)
@@ -662,7 +677,6 @@ private struct LayoutMetrics {
         return w
     }
 
-    // Final card width is the min of height- and width-constrained sizes
     var cardWidth: CGFloat {
         let w = min(heightConstrainedCardWidth, widthConstrainedCardWidth)
         return min(maxCardWidth, max(minCardWidth, w))
