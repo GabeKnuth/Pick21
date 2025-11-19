@@ -177,8 +177,8 @@ struct ContentView: View {
                     VStack(spacing: 6) {
                         // Chip (hex-tab style) — keep its size, centered to column
                         HexTab()
-                            .fill(Color.blue.opacity(0.9))
-                            .overlay(HexTab().stroke(Color(.sRGB, white: 0, opacity: 0.25), lineWidth: 1))
+                            .fill(Color.blue.opacity(0))
+                            .overlay(HexTab().stroke(Color(.sRGB, white: 1, opacity: 0.5), lineWidth: 3))
                             .frame(width: max(cfg.columns.hexTabMinWidth, layout.cardWidth * 0.62), height: cfg.columns.hexTabHeight)
                             .overlay(
                                 Text("\(col.total)")
@@ -225,11 +225,11 @@ struct ContentView: View {
         // Adjust per known bases to ensure good contrast
         switch base {
         case .green:
-            return Color(.sRGB, red: 0, green: 0.55, blue: 0, opacity: 1) // darker green
+            return Color(.sRGB, red: 0, green: 0.99, blue: 0, opacity: 1) // darker green
         case .yellow:
-            return Color(.sRGB, red: 0.75, green: 0.6, blue: 0, opacity: 1) // amber-ish darker yellow
+            return Color(.sRGB, red: 0.99, green: 0.99, blue: 0, opacity: 1) // amber-ish darker yellow
         default:
-            return Color(.sRGB, white: 0.6, opacity: 1) // darker gray
+            return Color(.sRGB, white: 0.7, opacity: 1) // darker gray
         }
     }
 
@@ -238,6 +238,18 @@ struct ContentView: View {
         if base == .green { return 3.5 }
         if base == .yellow { return 3.5 }
         return 1.0
+    }
+
+    // New: choose fill color by state using LayoutConfig tunables
+    private func columnFillColor(for col: Column) -> Color {
+        if col.isLocked {
+            return cfg.columns.columnFillLockedColor.opacity(cfg.columns.columnFillOpacity)
+        }
+        let isSoftState = (!col.isLocked && col.isSoft && !col.isFiveCardCharlie && col.total <= 21)
+        if isSoftState {
+            return cfg.columns.columnFillSoftColor.opacity(cfg.columns.columnFillOpacity)
+        }
+        return cfg.columns.columnFillNormalColor.opacity(cfg.columns.columnFillOpacity)
     }
 
     private func columnStack(col: Column, layout: LayoutMetrics) -> some View {
@@ -253,8 +265,13 @@ struct ContentView: View {
         let strokeColor = darkerBorderColor(from: pillColor)
             .opacity(cfg.columns.columnStrokeOpacity)
         let lineW = strokeWidth(for: pillColor)
+        let fillColor = columnFillColor(for: col)
 
         return ZStack(alignment: .top) {
+            // Fill first (transparent color per state), then stroke on top
+            RoundedRectangle(cornerRadius: cfg.columns.columnCornerRadius)
+                .fill(fillColor)
+
             RoundedRectangle(cornerRadius: cfg.columns.columnCornerRadius)
                 .strokeBorder(strokeColor, lineWidth: lineW)
 
@@ -265,12 +282,6 @@ struct ContentView: View {
                     ForEach(Array(col.cards.enumerated()), id: \.element.id) { (i, card) in
                         CardView(rank: card.rank, suit: card.suit, width: W)
                             .offset(x: 0, y: overlapStep * CGFloat(i))
-                    }
-                    if col.cards.isEmpty {
-                        Text("Tap to place")
-                            .foregroundStyle(.secondary)
-                            .font(.caption2)
-                            .padding(.vertical, 4)
                     }
                 }
                 .frame(width: W, height: H, alignment: .top)
@@ -297,8 +308,8 @@ struct ContentView: View {
 
         return VStack(alignment: .trailing, spacing: 10) {
             // Compact total hex chip — centered within RZ
-            compactTotalBoxForRZ(hexWidth: hexWidth, hexHeight: hexHeight)
-                .frame(maxWidth: .infinity, alignment: .center)
+            // compactTotalBoxForRZ(hexWidth: hexWidth, hexHeight: hexHeight)
+            //     .frame(maxWidth: .infinity, alignment: .center)
 
             // Round label
             Text("Round Scores")
@@ -314,14 +325,15 @@ struct ContentView: View {
             Button {
                 game.takeScore()
             } label: {
+                // Keep text single-line and allow slight downscaling to prevent wrap
                 Text("Take Score:\n \(sum)")
                     .font(.headline.weight(.semibold))
-                    .frame(maxWidth: .infinity)
-                    .multilineTextAlignment(.center)
                     .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.vertical, 20)
-                    .padding(.horizontal, 14)
+                    .minimumScaleFactor(0.85)
+                    .allowsTightening(true)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)   // slightly reduced from 20
+                    .padding(.horizontal, 12) // slightly reduced from 14
                     .background(
                         RoundedRectangle(cornerRadius: 11)
                             .fill(Color.green.opacity(
@@ -359,8 +371,8 @@ struct ContentView: View {
         let h = hexHeight ?? cfg.columns.hexTabHeight
 
         return HexTab()
-            .fill(Color.blue.opacity(0.9))
-            .overlay(HexTab().stroke(Color(.sRGB, white: 0, opacity: 0.25), lineWidth: 1))
+            .fill(Color.blue.opacity(0))
+            .overlay(HexTab().stroke(Color(.sRGB, white: 1, opacity: 0.5), lineWidth: 3))
             .frame(width: w, height: h)
             .overlay(
                 Text("\(sum)")
@@ -586,14 +598,14 @@ struct ContentView: View {
 
             let header = HStack(spacing: 10) {
                 Image(systemName: game.phase == .gameOver ? "flag.checkered" : "rosette")
-                    .font(.system(size: min(w, h) * 0.06, weight: .bold))
+                    .font(.system(size: min(w, h) * 0.05, weight: .bold))
                     .foregroundStyle(.white)
                 Text(headerText)
-                    .font(.system(size: min(w, h) * 0.075, weight: .heavy, design: .rounded))
+                    .font(.system(size: min(w, h) * 0.06, weight: .heavy, design: .rounded))
                     .foregroundStyle(.white)
             }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 10)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
             .background(
                 Capsule()
                     .fill(Color.blue.opacity(0.95))
@@ -610,13 +622,13 @@ struct ContentView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(.horizontal, w * 0.08)
-            .padding(.vertical, h * 0.08)
+            .padding(.horizontal, w * 0.06)
+            .padding(.vertical, h * 0.06)
             .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .fill(.ultraThinMaterial)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
                             .stroke(Color.white.opacity(0.25), lineWidth: 1)
                     )
             )
@@ -632,7 +644,7 @@ struct ContentView: View {
                 .foregroundStyle(.secondary)
 
             Text("\(game.roundScores[max(0, game.round - 1)])")
-                .font(.system(size: 48, weight: .heavy, design: .rounded))
+                .font(.system(size: 40, weight: .heavy, design: .rounded))
                 .monospacedDigit()
 
             HStack(spacing: 18) {
@@ -641,8 +653,8 @@ struct ContentView: View {
                 } label: {
                     Label("Start Next Round", systemImage: "play.fill")
                         .font(.headline.weight(.semibold))
-                        .padding(.horizontal, 18)
-                        .padding(.vertical, 12)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
                         .background(
                             Capsule().fill(Color.green.opacity(0.95))
                         )
@@ -655,8 +667,8 @@ struct ContentView: View {
                 } label: {
                     Label("Restart", systemImage: "arrow.counterclockwise")
                         .font(.subheadline.weight(.semibold))
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
                         .background(
                             Capsule().fill(Color.white.opacity(0.2))
                         )
@@ -668,7 +680,7 @@ struct ContentView: View {
         }
         .multilineTextAlignment(.center)
         .padding(.horizontal, 6)
-        .padding(.vertical, 4)
+        .padding(.vertical, 2)
     }
 
     private var gameOverContent: some View {
@@ -678,7 +690,7 @@ struct ContentView: View {
                 .foregroundStyle(.secondary)
 
             Text("\(game.totalScore)")
-                .font(.system(size: 52, weight: .heavy, design: .rounded))
+                .font(.system(size: 42, weight: .heavy, design: .rounded))
                 .monospacedDigit()
 
             if game.isNewHighScore {
@@ -698,7 +710,7 @@ struct ContentView: View {
                     }
                 }
             }
-            .padding()
+            .padding(10)
             .background(
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Color.white.opacity(0.12))
@@ -709,7 +721,7 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 2)
             }
-            .frame(maxHeight: 180)
+            .frame(maxHeight: 130)
 
             HStack(spacing: 18) {
                 Button {
@@ -717,8 +729,8 @@ struct ContentView: View {
                 } label: {
                     Label("Play Again", systemImage: "arrow.triangle.2.circlepath")
                         .font(.headline.weight(.semibold))
-                        .padding(.horizontal, 18)
-                        .padding(.vertical, 12)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
                         .background(
                             Capsule().fill(Color.green.opacity(0.95))
                         )
@@ -730,7 +742,7 @@ struct ContentView: View {
         }
         .multilineTextAlignment(.center)
         .padding(.horizontal, 6)
-        .padding(.vertical, 4)
+        .padding(.vertical, 2)
     }
 
     // MARK: - Overlay Panels (legacy accessors kept but unused internally)

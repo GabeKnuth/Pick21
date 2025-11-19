@@ -62,9 +62,15 @@ final class LayoutConfig: ObservableObject {
         var hexTabHeight: CGFloat = 18
         var softLabelYOffset: CGFloat = -14
         var columnCornerRadius: CGFloat = 8
-        var columnStrokeOpacity: CGFloat = 0.18
+        var columnStrokeOpacity: CGFloat = 0.30
         var bottomPillHPad: CGFloat = 8
         var bottomPillVPad: CGFloat = 5
+
+        // New: configurable fill colors and opacity per state
+        var columnFillLockedColor: Color = Color.green
+        var columnFillSoftColor: Color = Color.yellow
+        var columnFillNormalColor: Color = Color(.sRGB, red: 237/255, green: 237/255, blue: 237/255, opacity: 1)
+        var columnFillOpacity: CGFloat = 0.12
     }
 
     // Panes

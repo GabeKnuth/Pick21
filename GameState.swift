@@ -143,6 +143,13 @@ final class GameState: ObservableObject {
             return
         }
 
+        // NEW: Auto-end when board total reaches 105, even if some columns are soft (not locked)
+        let (sum, _) = boardTotals()
+        if sum == 105 {
+            endRound(reason: .perfectBoard)
+            return
+        }
+
         // Check perfect board (all locked and effectively 21)
         if columns.allSatisfy({ $0.isLocked && $0.effectiveTotal == 21 }) {
             endRound(reason: .perfectBoard)
