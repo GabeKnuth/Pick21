@@ -1,0 +1,27 @@
+Privacy Policy
+
+Pick21 Solitaire
+
+Pick21 Solitaire does not collect, store, transmit, or share any personal data. The app contains no analytics, no tracking, and no third-party data collection.
+
+Data Collection
+The app collects no personal information, usage data, device identifiers, or gameplay data.
+
+In-App Purchases
+Pick21 Solitaire includes an optional tip feature processed entirely through the Apple App Store.
+All payment information is handled by Apple. The app receives no payment details, personal data, or identifiers related to your purchase.
+
+Data Storage
+The app stores no data on our servers. No information is transmitted off your device.
+
+Third-Party Services
+The app uses no third-party SDKs, analytics tools, or advertising networks.
+
+Children’s Privacy
+Because the app collects no data, it is safe for users of all ages.
+
+Changes to This Policy
+If the app’s behavior changes in the future, this policy will be updated in the GitHub repository.
+
+Contact
+For questions, please contact the developer at gabe@gabeknuth.com
