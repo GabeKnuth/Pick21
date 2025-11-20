@@ -10,6 +10,12 @@
 		00179B452ECEA436001B1941 /* TipStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00179B442ECEA436001B1941 /* TipStore.swift */; };
 		001F95192ECD8C03007A09F5 /* OrientationHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 001F95182ECD8C03007A09F5 /* OrientationHelper.swift */; };
 		001F951F2ECD8EF7007A09F5 /* LockedHostingController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 001F951E2ECD8EF7007A09F5 /* LockedHostingController.swift */; };
+		006848F82ECFD44E0037D320 /* BoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 006848F72ECFD44E0037D320 /* BoardView.swift */; };
+		006848FA2ECFD45D0037D320 /* Overlays.swift in Sources */ = {isa = PBXBuildFile; fileRef = 006848F92ECFD45D0037D320 /* Overlays.swift */; };
+		006848FC2ECFD46E0037D320 /* PreGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 006848FB2ECFD46E0037D320 /* PreGameView.swift */; };
+		006848FE2ECFD4750037D320 /* HighScoresView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 006848FD2ECFD4750037D320 /* HighScoresView.swift */; };
+		006849002ECFD47A0037D320 /* HighScoresSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 006848FF2ECFD47A0037D320 /* HighScoresSheet.swift */; };
+		006849022ECFD47D0037D320 /* SettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 006849012ECFD47D0037D320 /* SettingsSheet.swift */; };
 		008CADD72EC558BA001BA388 /* Pick21SolitaireApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 008CADD62EC558BA001BA388 /* Pick21SolitaireApp.swift */; };
 		008CADD92EC558C1001BA388 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 008CADD82EC558C1001BA388 /* Models.swift */; };
 		008CADDB2EC558C9001BA388 /* GameState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 008CADDA2EC558C9001BA388 /* GameState.swift */; };
@@ -22,6 +28,12 @@
 		00179B442ECEA436001B1941 /* TipStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TipStore.swift; sourceTree = "<group>"; };
 		001F95182ECD8C03007A09F5 /* OrientationHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrientationHelper.swift; sourceTree = "<group>"; };
 		001F951E2ECD8EF7007A09F5 /* LockedHostingController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockedHostingController.swift; sourceTree = "<group>"; };
+		006848F72ECFD44E0037D320 /* BoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardView.swift; sourceTree = "<group>"; };
+		006848F92ECFD45D0037D320 /* Overlays.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Overlays.swift; sourceTree = "<group>"; };
+		006848FB2ECFD46E0037D320 /* PreGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreGameView.swift; sourceTree = "<group>"; };
+		006848FD2ECFD4750037D320 /* HighScoresView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HighScoresView.swift; sourceTree = "<group>"; };
+		006848FF2ECFD47A0037D320 /* HighScoresSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HighScoresSheet.swift; sourceTree = "<group>"; };
+		006849012ECFD47D0037D320 /* SettingsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSheet.swift; sourceTree = "<group>"; };
 		008CADC82EC55881001BA388 /* Pick 21 Solitaire.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Pick 21 Solitaire.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		008CADD62EC558BA001BA388 /* Pick21SolitaireApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pick21SolitaireApp.swift; sourceTree = "<group>"; };
 		008CADD82EC558C1001BA388 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
@@ -64,6 +76,12 @@
 				001F95182ECD8C03007A09F5 /* OrientationHelper.swift */,
 				001F951E2ECD8EF7007A09F5 /* LockedHostingController.swift */,
 				00179B442ECEA436001B1941 /* TipStore.swift */,
+				006848F72ECFD44E0037D320 /* BoardView.swift */,
+				006848F92ECFD45D0037D320 /* Overlays.swift */,
+				006848FB2ECFD46E0037D320 /* PreGameView.swift */,
+				006848FD2ECFD4750037D320 /* HighScoresView.swift */,
+				006848FF2ECFD47A0037D320 /* HighScoresSheet.swift */,
+				006849012ECFD47D0037D320 /* SettingsSheet.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -156,6 +174,12 @@
 				008CADDD2EC558D9001BA388 /* ContentView.swift in Sources */,
 				00A161382EC6C3DE00272C0D /* LayoutConfig.swift in Sources */,
 				008CADD92EC558C1001BA388 /* Models.swift in Sources */,
+				006848FA2ECFD45D0037D320 /* Overlays.swift in Sources */,
+				006848FC2ECFD46E0037D320 /* PreGameView.swift in Sources */,
+				006849022ECFD47D0037D320 /* SettingsSheet.swift in Sources */,
+				006848FE2ECFD4750037D320 /* HighScoresView.swift in Sources */,
+				006849002ECFD47A0037D320 /* HighScoresSheet.swift in Sources */,
+				006848F82ECFD44E0037D320 /* BoardView.swift in Sources */,
 				008CADDF2EC55D5D001BA388 /* CardView.swift in Sources */,
 				001F95192ECD8C03007A09F5 /* OrientationHelper.swift in Sources */,
 			);
