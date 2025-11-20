@@ -155,10 +155,10 @@ struct ContentView: View {
                         .allowsHitTesting(!showingOverlay)
                         .blur(radius: showingOverlay ? 1.0 : 0)
 
-                        // MGZ red border (smoke test)
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color.red, lineWidth: 2)
-                            .allowsHitTesting(false)
+//                        // MGZ red border (smoke test)
+//                        RoundedRectangle(cornerRadius: 8)
+//                            .stroke(Color.red, lineWidth: 2)
+//                            .allowsHitTesting(false)
 
                         if showingOverlay {
                             LinearGradient(
@@ -185,13 +185,13 @@ struct ContentView: View {
                         y: enableCentering ? centerY : (mgzOrigin.y + mgzSize.height / 2)
                     )
 
-                    // Yellow dashed border for effective padded area (smoke test)
-                    Path { path in
-                        let rect = CGRect(x: paddedX, y: paddedY, width: paddedW, height: paddedH)
-                        path.addRect(rect)
-                    }
-                    .stroke(Color.yellow, style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
-                    .allowsHitTesting(false)
+//                    // Yellow dashed border for effective padded area (smoke test)
+//                    Path { path in
+//                        let rect = CGRect(x: paddedX, y: paddedY, width: paddedW, height: paddedH)
+//                        path.addRect(rect)
+//                    }
+//                    .stroke(Color.yellow, style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
+//                    .allowsHitTesting(false)
                 }
             }
         }
