@@ -1,2 +1,25 @@
+# Xcode user data (never commit)
 xcuserdata/
 *.xcuserstate
+
+# Build products
+build/
+DerivedData/
+
+# SwiftPM / Package Manager
+.swiftpm/
+Packages/
+Package.resolved
+
+# Xcode workspace settings
+*.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
+
+# Generated index / logs
+*.xcactivitylog
+*.xccrashpoint
+
+# Misc
+*.moved-aside
+*.ipa
+*.dSYM.zip
+*.dSYM
