@@ -824,108 +824,277 @@ private struct PreGameView: View {
     @State private var showingHighScores = false
     @State private var showingSettings = false
 
+    // Tip store for the “Buy me a coffee” IAP
+    @StateObject private var tipStore = TipStore(productID: "Pick21BuyMeCoffee")
+    @State private var showingTipResult: String?
+
     var body: some View {
         GeometryReader { geo in
             let w = geo.size.width
             let h = geo.size.height
 
-            VStack(spacing: 18) {
-                Spacer()
+            ZStack {
+                VStack(spacing: 18) {
+                    Spacer()
 
-                VStack(spacing: 8) {
-                    Image("Pick21Logo-white")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: min(80, h * 0.2))
-                        .shadow(radius: 6, y: 3)
+                    VStack(spacing: 8) {
+                        Image("Pick21Logo-white")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: min(80, h * 0.2))
+                            .shadow(radius: 6, y: 3)
 
-                }
+                    }
 
-                Spacer()
+                    Spacer()
 
-                VStack(spacing: 12) {
-                    Button {
-                        game.startNewGame()
-                    } label: {
-                        Label("Play", systemImage: "play.fill")
-                            .font(.system(size: 22, weight: .bold, design: .rounded))
-                            .padding(.horizontal, 28)
-                            .padding(.vertical, 14)
-                            .frame(maxWidth: 420)
-                            .background(
-                                Capsule().fill(Color.green.opacity(0.95))
+                    VStack(spacing: 12) {
+                        Button {
+                            game.startNewGame()
+                        } label: {
+                            Label("Play", systemImage: "play.fill")
+                                .font(.system(size: 22, weight: .bold, design: .rounded))
+                                .padding(.horizontal, 28)
+                                .padding(.vertical, 14)
+                                .frame(maxWidth: 420)
+                                .background(
+                                    Capsule().fill(Color.green.opacity(0.95))
+                                )
+                                .foregroundStyle(.white)
+                        }
+                        .buttonStyle(.plain)
+
+                        Button {
+                            showingHighScores = true
+                        } label: {
+                            Label("View High Scores", systemImage: "trophy fill")
+                                .font(.system(size: 18, weight: .semibold, design: .rounded))
+                                .padding(.horizontal, 22)
+                                .padding(.vertical, 12)
+                                .frame(maxWidth: 420)
+                                .background(
+                                    Capsule().fill(Color.white.opacity(0.18))
+                                )
+                                .foregroundStyle(.white)
+                        }
+                        .buttonStyle(.plain)
+                        .sheet(isPresented: $showingHighScores) {
+                            HighScoresSheet(entries: game.highScores.entries)
+                        }
+
+                        Button {
+                            showingSettings = true
+                        } label: {
+                            Label("Settings", systemImage: "gearshape.fill")
+                                .font(.system(size: 18, weight: .semibold, design: .rounded))
+                                .padding(.horizontal, 22)
+                                .padding(.vertical, 12)
+                                .frame(maxWidth: 420)
+                                .background(
+                                    Capsule().fill(Color.white.opacity(0.18))
+                                )
+                                .foregroundStyle(.white)
+                        }
+                        .buttonStyle(.plain)
+                        .sheet(isPresented: $showingSettings) {
+                            SettingsSheet(
+                                hapticsEnabled: $game.hapticsEnabled,
+                                deckCount: $game.deckCount,
+                                clearAction: { game.clearHighScores() }
                             )
+                            .presentationDetents([.medium, .large])
+                        }
+                    }
+
+                    Spacer()
+
+                    // Best score quick chip
+                    let best = game.highScores.entries.first?.score ?? 0
+                    HStack(spacing: 8) {
+                        Image(systemName: "trophy.fill")
+                            .foregroundStyle(.yellow)
+                        Text("Best: \(best.formatted())")
+                            .font(.headline.monospacedDigit())
                             .foregroundStyle(.white)
                     }
-                    .buttonStyle(.plain)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Color.black.opacity(0.35)))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.2), lineWidth: 1))
 
-                    Button {
-                        showingHighScores = true
-                    } label: {
-                        Label("View High Scores", systemImage: "trophy fill")
-                            .font(.system(size: 18, weight: .semibold, design: .rounded))
-                            .padding(.horizontal, 22)
-                            .padding(.vertical, 12)
-                            .frame(maxWidth: 420)
-                            .background(
-                                Capsule().fill(Color.white.opacity(0.18))
-                            )
-                            .foregroundStyle(.white)
-                    }
-                    .buttonStyle(.plain)
-                    .sheet(isPresented: $showingHighScores) {
-                        HighScoresSheet(entries: game.highScores.entries)
-                    }
-
-                    Button {
-                        showingSettings = true
-                    } label: {
-                        Label("Settings", systemImage: "gearshape.fill")
-                            .font(.system(size: 18, weight: .semibold, design: .rounded))
-                            .padding(.horizontal, 22)
-                            .padding(.vertical, 12)
-                            .frame(maxWidth: 420)
-                            .background(
-                                Capsule().fill(Color.white.opacity(0.18))
-                            )
-                            .foregroundStyle(.white)
-                    }
-                    .buttonStyle(.plain)
-                    .sheet(isPresented: $showingSettings) {
-                        SettingsSheet(
-                            hapticsEnabled: $game.hapticsEnabled,
-                            deckCount: $game.deckCount,
-                            clearAction: { game.clearHighScores() }
-                        )
-                        .presentationDetents([.medium, .large])
-                    }
+                    Spacer()
                 }
+                .frame(width: w, height: h)
+                .padding(.horizontal, 24)
+                .background(
+                    Color.black.opacity(0.25)
+                        .ignoresSafeArea()
+                )
 
-                Spacer()
-
-                // Best score quick chip
-                let best = game.highScores.entries.first?.score ?? 0
-                HStack(spacing: 8) {
-                    Image(systemName: "trophy.fill")
-                        .foregroundStyle(.yellow)
-                    Text("Best: \(best.formatted())")
-                        .font(.headline.monospacedDigit())
-                        .foregroundStyle(.white)
+                // Floating “Buy me a coffee” control in lower-right
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        coffeeTipButton
+                    }
+                    .padding(.trailing, 35)
+                    .padding(.bottom, 16)
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(RoundedRectangle(cornerRadius: 12).fill(Color.black.opacity(0.35)))
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.2), lineWidth: 1))
-
-                Spacer()
+                .frame(width: w, height: h)
             }
-            .frame(width: w, height: h)
-            .padding(.horizontal, 24)
-            .background(
-                Color.black.opacity(0.25)
-                    .ignoresSafeArea()
-            )
         }
+    }
+
+    // Compact floating tip button
+    private var coffeeTipButton: some View {
+        Group {
+            switch tipStore.state {
+            case .idle, .loading:
+                Button {
+                    // no-op while loading
+                } label: {
+                    HStack(spacing: 8) {
+                        Text("☕️")
+                            .scaleEffect(2.0)
+                            .padding(.trailing, 6)
+                        ProgressView().tint(.white)
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text("Like this game?")
+                                .foregroundStyle(.white)
+                            Text("Buy me a coffee!")
+                                .foregroundStyle(.yellow)
+                        }
+                    }
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(
+                        Capsule().fill(Color.black.opacity(0.28))
+                    )
+                    .overlay(
+                        Capsule().stroke(Color.white.opacity(0.18), lineWidth: 1)
+                    )
+                    .foregroundStyle(.white.opacity(0.95))
+                }
+                .buttonStyle(.plain)
+                .disabled(true)
+
+            case .ready:
+                Button {
+                    Task {
+                        await tipStore.purchase()
+                        switch tipStore.state {
+                        case .purchased:
+                            showingTipResult = "Thanks so much for the coffee! ☕️"
+                        case .failed(let message):
+                            showingTipResult = "Purchase failed: \(message)"
+                        default:
+                            break
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        Text("☕️")
+                            .scaleEffect(2.0)
+                            .padding(.trailing, 6)
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text("Like this game?")
+                                .foregroundStyle(.white)
+                            Text("Buy me a coffee!")
+                                .foregroundStyle(.yellow)
+                        }
+                    }
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(
+                        Capsule().fill(Color.black.opacity(0.28))
+                    )
+                    .overlay(
+                        Capsule().stroke(Color.white.opacity(0.18), lineWidth: 1)
+                    )
+                    .foregroundStyle(.white.opacity(0.95))
+                }
+                .buttonStyle(.plain)
+
+            case .purchasing:
+                Button {} label: {
+                    HStack(spacing: 8) {
+                        Text("☕️")
+                        ProgressView().tint(.white)
+                        Text("Purchasing…")
+                    }
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(
+                        Capsule().fill(Color.black.opacity(0.28))
+                    )
+                    .overlay(
+                        Capsule().stroke(Color.white.opacity(0.18), lineWidth: 1)
+                    )
+                    .foregroundStyle(.white.opacity(0.95))
+                }
+                .buttonStyle(.plain)
+                .disabled(true)
+
+            case .purchased:
+                Button {} label: {
+                    HStack(spacing: 8) {
+                        Text("☕️")
+                        Text("Thank you!")
+                    }
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(
+                        Capsule().fill(Color.green.opacity(0.35))
+                    )
+                    .overlay(
+                        Capsule().stroke(Color.white.opacity(0.18), lineWidth: 1)
+                    )
+                    .foregroundStyle(.white.opacity(0.95))
+                }
+                .buttonStyle(.plain)
+                .disabled(true)
+
+            case .failed:
+                Button {
+                    Task { await tipStore.load() }
+                } label: {
+                    HStack(spacing: 8) {
+                        Text("☕️")
+                        Text("Buy me a coffee")
+                        Image(systemName: "arrow.clockwise")
+                            .imageScale(.small)
+                    }
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(
+                        Capsule().fill(Color.black.opacity(0.28))
+                    )
+                    .overlay(
+                        Capsule().stroke(Color.white.opacity(0.18), lineWidth: 1)
+                    )
+                    .foregroundStyle(.white.opacity(0.95))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .task {
+            await tipStore.load()
+        }
+        .alert("Tip", isPresented: Binding(
+            get: { showingTipResult != nil },
+            set: { if !$0 { showingTipResult = nil } }
+        )) {
+            Button("OK", role: .cancel) { showingTipResult = nil }
+        } message: {
+            Text(showingTipResult ?? "")
+        }
+        .accessibilityLabel("Buy me a coffee")
     }
 }
 

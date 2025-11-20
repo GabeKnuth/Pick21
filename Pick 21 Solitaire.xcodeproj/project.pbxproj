@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		00179B452ECEA436001B1941 /* TipStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00179B442ECEA436001B1941 /* TipStore.swift */; };
 		001F95192ECD8C03007A09F5 /* OrientationHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 001F95182ECD8C03007A09F5 /* OrientationHelper.swift */; };
 		001F951F2ECD8EF7007A09F5 /* LockedHostingController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 001F951E2ECD8EF7007A09F5 /* LockedHostingController.swift */; };
 		008CADD72EC558BA001BA388 /* Pick21SolitaireApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 008CADD62EC558BA001BA388 /* Pick21SolitaireApp.swift */; };
@@ -18,6 +19,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		00179B442ECEA436001B1941 /* TipStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TipStore.swift; sourceTree = "<group>"; };
 		001F95182ECD8C03007A09F5 /* OrientationHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrientationHelper.swift; sourceTree = "<group>"; };
 		001F951E2ECD8EF7007A09F5 /* LockedHostingController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockedHostingController.swift; sourceTree = "<group>"; };
 		008CADC82EC55881001BA388 /* Pick 21 Solitaire.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Pick 21 Solitaire.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -61,6 +63,7 @@
 				00A161372EC6C3DE00272C0D /* LayoutConfig.swift */,
 				001F95182ECD8C03007A09F5 /* OrientationHelper.swift */,
 				001F951E2ECD8EF7007A09F5 /* LockedHostingController.swift */,
+				00179B442ECEA436001B1941 /* TipStore.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -148,6 +151,7 @@
 			files = (
 				008CADDB2EC558C9001BA388 /* GameState.swift in Sources */,
 				008CADD72EC558BA001BA388 /* Pick21SolitaireApp.swift in Sources */,
+				00179B452ECEA436001B1941 /* TipStore.swift in Sources */,
 				001F951F2ECD8EF7007A09F5 /* LockedHostingController.swift in Sources */,
 				008CADDD2EC558D9001BA388 /* ContentView.swift in Sources */,
 				00A161382EC6C3DE00272C0D /* LayoutConfig.swift in Sources */,
