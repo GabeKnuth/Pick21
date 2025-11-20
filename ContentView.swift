@@ -13,6 +13,13 @@ struct ContentView: View {
     private let czSize = CGSize(width: 512, height: 323)
     private let rzSize = CGSize(width: 135, height: 323)
 
+    // Centering/scaling controls
+    private let enableCentering: Bool = true
+    private let enableScaling: Bool = true
+    private let maxScale: CGFloat = 1.3
+    private let horizontalMargin: CGFloat = 16
+    private let verticalMargin: CGFloat = 12
+
     var body: some View {
         ZStack {
             // Force the bg image as the background
@@ -32,11 +39,31 @@ struct ContentView: View {
                     .transition(.opacity)
             } else {
                 GeometryReader { proxy in
-                    // Treat coordinate system as landscape-left: X increases to the right, Y increases down.
-                    // MGZ is placed mgzOffsetFromLeft from the “left/top” edge in landscape-left, which is x = mgzOffsetFromLeft, y = 0.
+                    // Compute centering and optional scale
+                    let containerSize = proxy.size
+                    let targetSize = mgzSize
+
+                    // Available space after margins
+                    let availW = max(0, containerSize.width - (enableCentering ? 2 * horizontalMargin : 0))
+                    let availH = max(0, containerSize.height - (enableCentering ? 2 * verticalMargin : 0))
+
+                    // Fit uniform scale if enabled
+                    let fitScale: CGFloat = {
+                        guard enableScaling else { return 1.0 }
+                        guard targetSize.width > 0, targetSize.height > 0 else { return 1.0 }
+                        let sW = availW / targetSize.width
+                        let sH = availH / targetSize.height
+                        let s = min(sW, sH)
+                        return min(max(s, 1.0), maxScale) // never shrink below 1.0; cap growth
+                    }()
+
+                    // Positioning
+                    let centerX = containerSize.width / 2
+                    let centerY = containerSize.height / 2
+
+                    // Treat coordinate system as landscape-left if not centering
                     let mgzOrigin = CGPoint(x: mgzOffsetFromLeft, y: 0)
 
-                    // Build MGZ container with fixed size
                     ZStack {
                         // Board layer within MGZ: LZ, TZ, CZ, RZ
                         zonesInMGZ()
@@ -63,7 +90,11 @@ struct ContentView: View {
                         }
                     }
                     .frame(width: mgzSize.width, height: mgzSize.height, alignment: .topLeading)
-                    .position(x: mgzOrigin.x + mgzSize.width / 2, y: mgzOrigin.y + mgzSize.height / 2)
+                    .scaleEffect(fitScale, anchor: .center)
+                    .position(
+                        x: enableCentering ? centerX : (mgzOrigin.x + mgzSize.width / 2),
+                        y: enableCentering ? centerY : (mgzOrigin.y + mgzSize.height / 2)
+                    )
                 }
             }
         }
