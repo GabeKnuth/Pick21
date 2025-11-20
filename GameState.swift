@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import UIKit
+import CoreHaptics
 
 @MainActor
 final class GameState: ObservableObject {
@@ -33,6 +34,11 @@ final class GameState: ObservableObject {
     private var shoe: [Card] = []
     private var timerCancellable: AnyCancellable?
     private var timerSource: Publishers.Autoconnect<Timer.TimerPublisher>?
+
+    // Core Haptics
+    private var hapticsEngine: CHHapticEngine?
+    private var hapticsSupportChecked = false
+    private var hapticsSupported = false
 
     // MARK: - Init
     init() {
@@ -76,7 +82,8 @@ final class GameState: ObservableObject {
 
         // Haptics: celebrate perfect board (covers 105 case during finalization)
         if reason == .perfectBoard {
-            celebrateHaptics()
+            // Use distinct 105 pattern here as well
+            perfect105Haptics()
         }
 
         // Transition phase
@@ -90,7 +97,7 @@ final class GameState: ObservableObject {
 
             // Haptics: when game over interstitial will show
             if isNewHighScore {
-                celebrateHaptics() // celebratory tick
+                highScoreHaptics() // celebratory tick
             } else {
                 gameOverHaptics()  // simple “game over” tick
             }
@@ -169,8 +176,8 @@ final class GameState: ObservableObject {
         // NEW: Auto-end when board total reaches 105, even if some columns are soft (not locked)
         let (sum, _) = boardTotals()
         if sum == 105 {
-            // Haptics: celebrate immediately when 105 is achieved
-            celebrateHaptics()
+            // Haptics: distinct pattern for 105
+            perfect105Haptics()
             endRound(reason: .perfectBoard)
             return
         }
@@ -261,8 +268,168 @@ final class GameState: ObservableObject {
         isNewHighScore = false
     }
 
+    // MARK: - Core Haptics setup
+    private func ensureHapticsEngine() {
+        if hapticsSupportChecked == false {
+            hapticsSupported = CHHapticEngine.capabilitiesForHardware().supportsHaptics
+            hapticsSupportChecked = true
+        }
+        guard hapticsSupported else { return }
+
+        if hapticsEngine == nil {
+            do {
+                let engine = try CHHapticEngine()
+                engine.isAutoShutdownEnabled = true
+                engine.stoppedHandler = { reason in
+                    // Engine stops automatically; we'll recreate lazily if needed
+                }
+                engine.resetHandler = { [weak self] in
+                    // Try to restart on reset
+                    try? self?.hapticsEngine?.start()
+                }
+                try engine.start()
+                hapticsEngine = engine
+            } catch {
+                // If engine init fails, mark unsupported for this session
+                hapticsSupported = false
+                hapticsEngine = nil
+            }
+        } else {
+            // Ensure it's running
+            do {
+                try hapticsEngine?.start()
+            } catch {
+                // Try rebuilding once
+                hapticsEngine = nil
+                ensureHapticsEngine()
+            }
+        }
+    }
+
     // MARK: - Haptics
-    private func celebrateHaptics() {
+    // Distinct, overt celebratory pattern for achieving 105:
+    // - Two strong transient spikes ~80ms apart
+    // - A short continuous rumble tail (~200ms) with a slight decay
+    private func perfect105Haptics() {
+        guard hapticsEnabled else { return }
+
+        ensureHapticsEngine()
+        guard hapticsSupported, let engine = hapticsEngine else {
+            // Fallback: bold double-tap using impacts with a longer cadence
+            let heavy = UIImpactFeedbackGenerator(style: .heavy)
+            heavy.prepare()
+            heavy.impactOccurred()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.09) {
+                let rigid = UIImpactFeedbackGenerator(style: .rigid)
+                rigid.prepare()
+                rigid.impactOccurred()
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.20) {
+                let soft = UIImpactFeedbackGenerator(style: .soft)
+                soft.prepare()
+                soft.impactOccurred(intensity: 0.7)
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.09) {
+                let rigid = UIImpactFeedbackGenerator(style: .rigid)
+                rigid.prepare()
+                rigid.impactOccurred()
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.20) {
+                let soft = UIImpactFeedbackGenerator(style: .soft)
+                soft.prepare()
+                soft.impactOccurred(intensity: 0.7)
+            }
+            return
+        }
+
+        do {
+            var events: [CHHapticEvent] = []
+
+            // First sharp peak
+            events.append(
+                CHHapticEvent(
+                    eventType: .hapticTransient,
+                    parameters: [
+                        CHHapticEventParameter(parameterID: .hapticIntensity, value: 1.0),
+                        CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.9)
+                    ],
+                    relativeTime: 0.0
+                )
+            )
+
+            // Second sharp peak at 80ms
+            events.append(
+                CHHapticEvent(
+                    eventType: .hapticTransient,
+                    parameters: [
+                        CHHapticEventParameter(parameterID: .hapticIntensity, value: 1.0),
+                        CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.9)
+                    ],
+                    relativeTime: 0.08
+                )
+            )
+
+            // Short rumble tail starting at 140ms for 200ms, decaying
+            let tailStart: TimeInterval = 0.14
+            let tailDuration: TimeInterval = 0.22
+            var tailParams: [CHHapticParameterCurve] = []
+
+            // Intensity decays from 0.8 to 0.2 across the duration
+            let intensityCurve = CHHapticParameterCurve(
+                parameterID: .hapticIntensityControl,
+                controlPoints: [
+                    .init(relativeTime: tailStart, value: 0.8),
+                    .init(relativeTime: tailStart + tailDuration * 0.6, value: 0.5),
+                    .init(relativeTime: tailStart + tailDuration, value: 0.2)
+                ],
+                relativeTime: 0
+            )
+            tailParams.append(intensityCurve)
+
+            // Sharpness decays a bit too for a softer tail
+            let sharpnessCurve = CHHapticParameterCurve(
+                parameterID: .hapticSharpnessControl,
+                controlPoints: [
+                    .init(relativeTime: tailStart, value: 0.6),
+                    .init(relativeTime: tailStart + tailDuration, value: 0.3)
+                ],
+                relativeTime: 0
+            )
+            tailParams.append(sharpnessCurve)
+
+            events.append(
+                CHHapticEvent(
+                    eventType: .hapticContinuous,
+                    parameters: [],
+                    relativeTime: tailStart,
+                    duration: tailDuration
+                )
+            )
+
+            let pattern = try CHHapticPattern(events: events, parameterCurves: tailParams)
+            let player = try engine.makePlayer(with: pattern)
+            try engine.start()
+            try player.start(atTime: 0)
+        } catch {
+            // Fallback if anything fails
+            let heavy = UIImpactFeedbackGenerator(style: .heavy)
+            heavy.prepare()
+            heavy.impactOccurred()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.09) {
+                let rigid = UIImpactFeedbackGenerator(style: .rigid)
+                rigid.prepare()
+                rigid.impactOccurred()
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.20) {
+                let soft = UIImpactFeedbackGenerator(style: .soft)
+                soft.prepare()
+                soft.impactOccurred(intensity: 0.7)
+            }
+        }
+    }
+
+    // Celebration for new high score at game over (keep system "success")
+    private func highScoreHaptics() {
         guard hapticsEnabled else { return }
         let generator = UINotificationFeedbackGenerator()
         generator.prepare()
@@ -299,4 +466,3 @@ enum HighScoresStorage {
         }
     }
 }
-
