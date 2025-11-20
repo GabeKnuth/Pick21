@@ -147,8 +147,8 @@ struct ContentView: View {
                         Color.white.opacity(isPassEnabled ? 1.0 : 0.55)
                     )
             }
-            .buttonStyle(.plain)                // remove default press highlight
-            .animation(nil, value: isPassEnabled) // prevent implicit anim on enablement change
+            .buttonStyle(.plain)
+            .animation(nil, value: isPassEnabled)
             .disabled(!isPassEnabled)
             .padding(.trailing, 20)
 
@@ -169,20 +169,17 @@ struct ContentView: View {
 
     // CZ: Columns, scores, soft overlay, status pills
     private var centerZone: some View {
-        // Fill CZ both horizontally and vertically, no scroll, no extra padding
         GeometryReader { geo in
             let availableWidth = geo.size.width
             let availableHeight = geo.size.height
             let layout = LayoutMetrics(availableWidth: availableWidth, availableHeight: availableHeight, cfg: cfg)
 
-            // Distribute five columns with fixed inter-column spacing; chrome stays same size
             HStack(alignment: .top, spacing: layout.interColumnSpacing) {
                 ForEach(game.columns.indices, id: \.self) { idx in
                     let col = game.columns[idx]
                     let canTap = game.phase == .inRound && !col.isLocked && game.currentCard != nil
 
                     VStack(spacing: 6) {
-                        // Chip (hex-tab style) — outline changes color by state; fill stays transparent
                         let hexStroke = hexTabStrokeColor(for: col)
 
                         HexTab()
@@ -197,9 +194,8 @@ struct ContentView: View {
                             )
                             .offset(y: -2)
 
-                        // Column area fills the full CZ height allotted to the column
                         columnStack(col: col, layout: layout)
-                            .frame(height: layout.columnFrameHeight - 8) // exact height to fill CZ
+                            .frame(height: layout.columnFrameHeight - 8)
                             .contentShape(Rectangle())
                             .onTapGesture {
                                 if canTap {
@@ -207,11 +203,10 @@ struct ContentView: View {
                                 }
                             }
 
-                        // Bottom pill — same size, centered under the column
                         bottomStatusPill(for: col)
                             .offset(y: -15)
                     }
-                    .frame(width: layout.columnFrameWidth) // ensure each column gets its computed width
+                    .frame(width: layout.columnFrameWidth)
                 }
             }
             .frame(width: availableWidth, height: availableHeight, alignment: .topLeading)
@@ -219,7 +214,6 @@ struct ContentView: View {
     }
 
     private func columnPillBackgroundColor(for col: Column) -> Color {
-        // Mirrors the bottom pill state
         if col.isLocked {
             return .green
         }
@@ -231,25 +225,22 @@ struct ContentView: View {
     }
 
     private func darkerBorderColor(from base: Color) -> Color {
-        // Adjust per known bases to ensure good contrast
         switch base {
         case .green:
-            return Color(.sRGB, red: 0, green: 0.99, blue: 0, opacity: 1) // darker green
+            return Color(.sRGB, red: 0, green: 0.99, blue: 0, opacity: 1)
         case .yellow:
-            return Color(.sRGB, red: 0.99, green: 0.99, blue: 0, opacity: 1) // amber-ish darker yellow
+            return Color(.sRGB, red: 0.99, green: 0.99, blue: 0, opacity: 1)
         default:
-            return Color(.sRGB, white: 0.7, opacity: 1) // darker gray
+            return Color(.sRGB, white: 0.7, opacity: 1)
         }
     }
 
     private func strokeWidth(for base: Color) -> CGFloat {
-        // Slightly thicker when locked, medium for soft, thin otherwise
         if base == .green { return 3.5 }
         if base == .yellow { return 3.5 }
         return 1.0
     }
 
-    // New: choose fill color by state using LayoutConfig tunables
     private func columnFillColor(for col: Column) -> Color {
         if col.isLocked {
             return cfg.columns.columnFillLockedColor.opacity(cfg.columns.columnFillOpacity)
@@ -261,13 +252,8 @@ struct ContentView: View {
         return cfg.columns.columnFillNormalColor.opacity(cfg.columns.columnFillOpacity)
     }
 
-    // Outline color for the hex tab only (fill remains transparent)
     private func hexTabStrokeColor(for col: Column) -> Color {
-        // Make the hex outline match the bottom pill fill color exactly.
         return columnPillBackgroundColor(for: col)
-        // If you prefer a slightly darker outline while still following the same base color,
-        // replace with:
-        // return darkerBorderColor(from: columnPillBackgroundColor(for: col)).opacity(0.9)
     }
 
     private func columnStack(col: Column, layout: LayoutMetrics) -> some View {
@@ -285,7 +271,6 @@ struct ContentView: View {
         let fillColor = columnFillColor(for: col)
 
         return ZStack(alignment: .top) {
-            // Fill first (transparent color per state), then stroke on top
             RoundedRectangle(cornerRadius: cfg.columns.columnCornerRadius)
                 .fill(fillColor)
 
@@ -307,13 +292,10 @@ struct ContentView: View {
                 Spacer(minLength: fiveCardStackHeight - H + columnPadding)
             }
         }
-        // Removed the old "Soft" top overlay to avoid duplication.
         .frame(width: columnFrameWidth, height: columnFrameHeight)
     }
 
-    // RZ: Total card score (aligned with CZ columns), round scores, total score, Take Score, Pick21 Logo
     private var rightZone: some View {
-        // Compute the same layout used by CZ to align the hex chip vertically
         let layout = LayoutMetrics(
             availableWidth: czSize.width,
             availableHeight: czSize.height,
@@ -324,19 +306,14 @@ struct ContentView: View {
         let (sum, _) = game.boardTotals()
 
         return VStack(alignment: .trailing, spacing: 10) {
-            // Compact total hex chip — centered within RZ
-
-            // Round label
             Text("Round Scores")
                 .font(.system(.headline, design: .rounded).weight(.bold))
                 .minimumScaleFactor(0.8)
                 .frame(maxWidth: .infinity, alignment: .center)
                 .foregroundStyle(.white)
 
-            // Round scores 1–3
             topThreeScores
 
-            // Take Score button
             Button {
                 game.takeScore()
             } label: {
@@ -360,7 +337,6 @@ struct ContentView: View {
             .padding(.vertical, 10)
             .padding(.leading, 8)
 
-            // Pick21 Logo using asset
             pick21Logo
                 .frame(maxWidth: .infinity, alignment: .trailing)
         }
@@ -393,8 +369,6 @@ struct ContentView: View {
                     .foregroundStyle(.white)
             )
     }
-
-    // Existing components reused (timerBar, highScoreChip, currentCardPanel, bonusLegend, topThreeScores, bottomStatusPill, overlay)
 
     private var timerBar: some View {
         GeometryReader { geo in
@@ -495,7 +469,7 @@ struct ContentView: View {
             legendRow("98",  "× 100")
             legendRow("97",  "× 50")
         }
-        .frame(width: 100, alignment: .leading) // match shoe card width
+        .frame(width: 100, alignment: .leading)
         .padding(2)
         .minimumScaleFactor(0.85)
         .background(
@@ -591,7 +565,6 @@ struct ContentView: View {
             let w = geo.size.width
             let h = geo.size.height
 
-            // Build dynamic header text
             let headerText: String = {
                 if game.phase == .gameOver {
                     return "Game Over"
@@ -650,7 +623,6 @@ struct ContentView: View {
         VStack(spacing: 14) {
             Text("Round Score")
                 .font(.system(.title3, design: .rounded).weight(.semibold))
-                //.foregroundStyle(.secondary)
                 .foregroundStyle(.black)
 
             Text("\(game.roundScores[max(0, game.round - 1)])")
@@ -695,19 +667,15 @@ struct ContentView: View {
 
     private var gameOverContent: some View {
         VStack(spacing: 14) {
-            Text("Final Score")
+            // Replace "Final Score" with "★ New High Score!" when appropriate
+            Text(game.isNewHighScore ? "★ New High Score!" : "Final Score")
                 .font(.system(.title3, design: .rounded).weight(.semibold))
-                //.foregroundStyle(.secondary)
 
             Text("\(game.totalScore)")
                 .font(.system(size: 42, weight: .heavy, design: .rounded))
                 .monospacedDigit()
 
-            if game.isNewHighScore {
-                Label("New High Score!", systemImage: "star.fill")
-                    .foregroundStyle(.yellow)
-                    .font(.headline.weight(.bold))
-            }
+            // Removed the separate "New High Score!" label to avoid layout shift
 
             VStack(alignment: .leading, spacing: 6) {
                 Text("Round Details")
@@ -826,7 +794,6 @@ private struct PreGameView: View {
 
     // Tip store for the “Buy me a coffee” IAP
     @StateObject private var tipStore = TipStore(productID: "Pick21BuyMeCoffee")
-    @State private var showingTipResult: String?
 
     var body: some View {
         GeometryReader { geo in
@@ -843,6 +810,7 @@ private struct PreGameView: View {
                             .scaledToFit()
                             .frame(height: min(80, h * 0.2))
                             .shadow(radius: 6, y: 3)
+                            .offset(y: 20)
 
                     }
 
@@ -921,6 +889,7 @@ private struct PreGameView: View {
                     .padding(.vertical, 8)
                     .background(RoundedRectangle(cornerRadius: 12).fill(Color.black.opacity(0.35)))
                     .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.2), lineWidth: 1))
+                    .offset(y: -8)
 
                     Spacer()
                 }
@@ -946,153 +915,70 @@ private struct PreGameView: View {
         }
     }
 
-    // Compact floating tip button
+    // MARK: Tip button
     private var coffeeTipButton: some View {
-        Group {
-            switch tipStore.state {
-            case .idle, .loading:
-                Button {
-                    // no-op while loading
-                } label: {
-                    HStack(spacing: 8) {
-                        Text("☕️")
-                            .scaleEffect(2.0)
-                            .padding(.trailing, 6)
-                        ProgressView().tint(.white)
-                        VStack(alignment: .leading, spacing: 0) {
-                            Text("Like this game?")
-                                .foregroundStyle(.white)
-                            Text("Buy me a coffee!")
-                                .foregroundStyle(.yellow)
-                        }
-                    }
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(
-                        Capsule().fill(Color.black.opacity(0.28))
-                    )
-                    .overlay(
-                        Capsule().stroke(Color.white.opacity(0.18), lineWidth: 1)
-                    )
-                    .foregroundStyle(.white.opacity(0.95))
-                }
-                .buttonStyle(.plain)
-                .disabled(true)
+        // Button is enabled only when the product is ready
+        let isEnabled: Bool = {
+            if case .ready = tipStore.state { return true }
+            return false
+        }()
 
-            case .ready:
-                Button {
-                    Task {
-                        await tipStore.purchase()
-                        switch tipStore.state {
-                        case .purchased:
-                            showingTipResult = "Thanks so much for the coffee! ☕️"
-                        case .failed(let message):
-                            showingTipResult = "Purchase failed: \(message)"
-                        default:
-                            break
-                        }
-                    }
-                } label: {
-                    HStack(spacing: 8) {
-                        Text("☕️")
-                            .scaleEffect(2.0)
-                            .padding(.trailing, 6)
-                        VStack(alignment: .leading, spacing: 0) {
-                            Text("Like this game?")
-                                .foregroundStyle(.white)
-                            Text("Buy me a coffee!")
-                                .foregroundStyle(.yellow)
-                        }
-                    }
-                    .font(.system(size: 12, weight: .semibold, design: .rounded))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(
-                        Capsule().fill(Color.black.opacity(0.28))
-                    )
-                    .overlay(
-                        Capsule().stroke(Color.white.opacity(0.18), lineWidth: 1)
-                    )
-                    .foregroundStyle(.white.opacity(0.95))
-                }
-                .buttonStyle(.plain)
-
-            case .purchasing:
-                Button {} label: {
-                    HStack(spacing: 8) {
-                        Text("☕️")
-                        ProgressView().tint(.white)
-                        Text("Purchasing…")
-                    }
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(
-                        Capsule().fill(Color.black.opacity(0.28))
-                    )
-                    .overlay(
-                        Capsule().stroke(Color.white.opacity(0.18), lineWidth: 1)
-                    )
-                    .foregroundStyle(.white.opacity(0.95))
-                }
-                .buttonStyle(.plain)
-                .disabled(true)
-
-            case .purchased:
-                Button {} label: {
-                    HStack(spacing: 8) {
-                        Text("☕️")
-                        Text("Thank you!")
-                    }
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(
-                        Capsule().fill(Color.green.opacity(0.35))
-                    )
-                    .overlay(
-                        Capsule().stroke(Color.white.opacity(0.18), lineWidth: 1)
-                    )
-                    .foregroundStyle(.white.opacity(0.95))
-                }
-                .buttonStyle(.plain)
-                .disabled(true)
-
-            case .failed:
-                Button {
-                    Task { await tipStore.load() }
-                } label: {
-                    HStack(spacing: 8) {
-                        Text("☕️")
-                        Text("Buy me a coffee")
-                        Image(systemName: "arrow.clockwise")
-                            .imageScale(.small)
-                    }
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(
-                        Capsule().fill(Color.black.opacity(0.28))
-                    )
-                    .overlay(
-                        Capsule().stroke(Color.white.opacity(0.18), lineWidth: 1)
-                    )
-                    .foregroundStyle(.white.opacity(0.95))
-                }
-                .buttonStyle(.plain)
-            }
+        // Label text: show "Thank you!" after purchase, otherwise the normal two-line copy
+        let labelTextTop: String
+        let labelTextBottom: String?
+        if case .purchased = tipStore.state {
+            labelTextTop = "Thank you!"
+            labelTextBottom = nil
+        } else {
+            labelTextTop = "Like this game?"
+            labelTextBottom = "Buy me a coffee!"
         }
+
+        return Button {
+            // Guard: only attempt purchase when ready
+            if case .ready = tipStore.state {
+                Task { await tipStore.purchase() }
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Text("☕️")
+                    .scaleEffect(2.0)
+                    .padding(.trailing, 6)
+                    .padding(.leading, 2)
+
+                if let bottom = labelTextBottom {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(labelTextTop)
+                            .foregroundStyle(.white)
+                        Text(bottom)
+                            .foregroundStyle(.yellow)
+                    }
+                } else {
+                    // "Thank you!" single line, same overall layout footprint
+                    Text(labelTextTop)
+                        .foregroundStyle(.white)
+                }
+            }
+            .font(.system(size: 12, weight: .semibold, design: .rounded))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(
+                Capsule().fill(
+                    (tipStore.state == .purchased)
+                    ? Color.green.opacity(0.35)
+                    : Color.black.opacity(0.28)
+                )
+            )
+            .overlay(
+                Capsule().stroke(Color.white.opacity(0.18), lineWidth: 1)
+            )
+            .foregroundStyle(.white.opacity(0.95))
+            .opacity(isEnabled ? 1.0 : 0.75) // subtle dim when disabled
+        }
+        .buttonStyle(.plain)
+        .disabled(!isEnabled)
         .task {
             await tipStore.load()
-        }
-        .alert("Tip", isPresented: Binding(
-            get: { showingTipResult != nil },
-            set: { if !$0 { showingTipResult = nil } }
-        )) {
-            Button("OK", role: .cancel) { showingTipResult = nil }
-        } message: {
-            Text(showingTipResult ?? "")
         }
         .accessibilityLabel("Buy me a coffee")
     }
@@ -1110,7 +996,6 @@ private struct HighScoresSheet: View {
 
     var body: some View {
         NavigationStack {
-            // Top-aligned content with minimal top padding so the title sits closer to the top
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 12) {
                     if entries.isEmpty {
@@ -1118,7 +1003,6 @@ private struct HighScoresSheet: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.vertical, 8)
                     } else {
-                        // Use compact sizing to fit 10 rows
                         HighScoresView(
                             entries: entries,
                             baseFontSize: 20,
@@ -1127,7 +1011,7 @@ private struct HighScoresSheet: View {
                         )
                     }
                 }
-                .padding(.top, 8) // tighter top gap under the nav bar title
+                .padding(.top, 8)
                 .padding(.horizontal, 16)
                 .frame(maxWidth: .infinity, alignment: .topLeading)
             }
@@ -1262,9 +1146,8 @@ private struct HexTab: Shape {
 
 struct HighScoresView: View {
     let entries: [HighScoreEntry]
-    // Configurable compactness
-    var baseFontSize: CGFloat = 20   // bumped up for better legibility
-    var rowVPadding: CGFloat = 4     // taller rows
+    var baseFontSize: CGFloat = 20
+    var rowVPadding: CGFloat = 4
     var headerSpacing: CGFloat = 6
 
     private let dateFormatter: DateFormatter = {
@@ -1274,7 +1157,6 @@ struct HighScoresView: View {
         return df
     }()
 
-    // Compact, non-scrolling matrix directly under the title
     var body: some View {
         let maxRows = 10
         let shown = Array(entries.prefix(maxRows))
@@ -1287,7 +1169,6 @@ struct HighScoresView: View {
                     .foregroundStyle(.secondary)
             } else {
                 VStack(spacing: max(0, rowVPadding)) {
-                    // Header with three equal-width columns
                     HStack(spacing: 12) {
                         Text("Rank")
                             .font(.system(size: baseFontSize, weight: .semibold, design: .rounded))
@@ -1302,7 +1183,6 @@ struct HighScoresView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
 
-                    // Real rows
                     ForEach(Array(shown.enumerated()), id: \.element.id) { idx, entry in
                         rowView(rank: idx + 1,
                                 scoreText: entry.score.formatted(),
@@ -1310,7 +1190,6 @@ struct HighScoresView: View {
                                 isPlaceholder: false)
                     }
 
-                    // Placeholder rows to fill up to 10
                     ForEach(0..<placeholderCount, id: \.self) { idx in
                         rowView(rank: shown.count + idx + 1,
                                 scoreText: "—",
