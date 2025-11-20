@@ -33,7 +33,6 @@ final class LayoutConfig: ObservableObject {
         }
     }
     @Published var backgroundStyle: BackgroundStyle = .solid(.white)
-    
 
     // Cards
     struct CardTunables {
@@ -110,7 +109,12 @@ final class LayoutConfig: ObservableObject {
     @Published var hud = HUDTunables()
     @Published var misc = MiscTunables()
 
+    // Default initializer: set any app-wide defaults here to avoid mutating
+    // the @StateObject before it's installed in the view hierarchy.
+    init() {
+        backgroundStyle = .image(name: "bg", contentMode: .fill, opacity: 1.0)
+    }
+
     // Helpers to get scaled values
     func s(_ v: CGFloat) -> CGFloat { v * uiScale }
 }
-

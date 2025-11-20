@@ -835,7 +835,7 @@ private struct PreGameView: View {
                         Button {
                             showingHighScores = true
                         } label: {
-                            Label("View High Scores", systemImage: "trophy fill")
+                            Label("View High Scores", systemImage: "trophy.fill")
                                 .font(.system(size: 18, weight: .semibold, design: .rounded))
                                 .padding(.horizontal, 22)
                                 .padding(.vertical, 12)

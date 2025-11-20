@@ -7,9 +7,7 @@ struct Pick21SolitaireApp: App {
     @StateObject private var layoutConfig = LayoutConfig()
 
     init() {
-        // App-wide background
-        layoutConfig.backgroundStyle = .image(name: "bg", contentMode: .fill, opacity: 1.0)
-
+        // Removed: Do not mutate @StateObject here.
         // Re-apply orientation on scene activation (helps cold launch/simulator)
         NotificationCenter.default.addObserver(
             forName: UIScene.didActivateNotification,
