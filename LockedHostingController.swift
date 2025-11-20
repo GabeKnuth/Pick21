@@ -2,16 +2,13 @@ import SwiftUI
 import UIKit
 
 final class LockedHostingController<Content: View>: UIHostingController<Content> {
+    // Defer entirely to the system and Info.plist supported orientations.
+    // Removing overrides prevents conflicts and launch flips.
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
-        // iPhone: lock to notch-left
-        if UIDevice.current.userInterfaceIdiom == .phone {
-            return .landscapeLeft
-        }
-        // iPad can be adjusted as needed
-        return [.landscapeLeft, .landscapeRight]
+        super.supportedInterfaceOrientations
     }
 
     override var preferredInterfaceOrientationForPresentation: UIInterfaceOrientation {
-        .landscapeLeft
+        super.preferredInterfaceOrientationForPresentation
     }
 }
