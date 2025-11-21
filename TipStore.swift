@@ -71,7 +71,7 @@ final class TipStore: ObservableObject {
     private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
         switch result {
         case .unverified(_, let error):
-            throw error ?? NSError(domain: "TipStore", code: 1, userInfo: [NSLocalizedDescriptionKey: "Unverified transaction"])
+            throw error
         case .verified(let safe):
             return safe
         }
