@@ -24,10 +24,20 @@ struct CardView: View {
     }
 
     var body: some View {
+        // Read the display scale from the environment locally, and pass it down explicitly
+        let displayScale = EnvironmentValues().displayScale  // default; will be overridden by .environment
+        // Better: use a reader that captures the actual environment at render time:
+        return _Body(displayScale: displayScale) {
+            content(displayScale: $0)
+        }
+    }
+
+    // The actual content, parameterized by the display scale so no global/env property is needed
+    private func content(displayScale: CGFloat) -> some View {
         let corner = cfg.s(cfg.cards.cornerRadius)
         let stroke = cfg.s(cfg.cards.borderWidth)
 
-        ZStack {
+        return ZStack {
             RoundedRectangle(cornerRadius: corner)
                 .fill(.white)
             RoundedRectangle(cornerRadius: corner)
@@ -47,7 +57,10 @@ struct CardView: View {
                         .interpolation(.high)
                         .antialiased(true)
                         .aspectRatio(contentMode: .fit)
-                        .frame(width: pixelSnapped(width * cfg.cards.smallSuitRatio), height: pixelSnapped(width * cfg.cards.smallSuitRatio))
+                        .frame(
+                            width: pixelSnapped(width * cfg.cards.smallSuitRatio, scale: displayScale),
+                            height: pixelSnapped(width * cfg.cards.smallSuitRatio, scale: displayScale)
+                        )
                         .frame(maxWidth: .infinity, alignment: .trailing)
                         .padding(.trailing, width * cfg.cards.sidePaddingRatio)
                 }
@@ -61,7 +74,10 @@ struct CardView: View {
                     .interpolation(.high)
                     .antialiased(true)
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: pixelSnapped(width * cfg.cards.largeSuitRatio), height: pixelSnapped(width * cfg.cards.largeSuitRatio))
+                    .frame(
+                        width: pixelSnapped(width * cfg.cards.largeSuitRatio, scale: displayScale),
+                        height: pixelSnapped(width * cfg.cards.largeSuitRatio, scale: displayScale)
+                    )
 
                 Spacer(minLength: 0)
             }
@@ -71,15 +87,29 @@ struct CardView: View {
     }
 
     // Snap to whole pixels to avoid soft rendering at small sizes
-    private func pixelSnapped(_ value: CGFloat) -> CGFloat {
-        #if os(iOS)
-        let scale = UIScreen.main.scale
-        #elseif os(macOS)
-        let scale = NSScreen.main?.backingScaleFactor ?? 2.0
+    private func pixelSnapped(_ value: CGFloat, scale: CGFloat) -> CGFloat {
+        let s: CGFloat
+        #if os(macOS)
+        s = NSScreen.main?.backingScaleFactor ?? 2.0
         #else
-        let scale: CGFloat = 2.0
+        s = scale
         #endif
-        return CGFloat((value * scale).rounded()) / scale
+        return CGFloat((value * s).rounded()) / s
     }
 }
 
+// A tiny helper view to capture the real environment’s displayScale and feed it into content(displayScale:)
+private struct _Body<Content: View>: View {
+    @Environment(\.displayScale) private var envScale
+    let defaultScale: CGFloat
+    let builder: (CGFloat) -> Content
+
+    init(displayScale: CGFloat, @ViewBuilder _ builder: @escaping (CGFloat) -> Content) {
+        self.defaultScale = displayScale
+        self.builder = builder
+    }
+
+    var body: some View {
+        builder(envScale)
+    }
+}

@@ -229,13 +229,13 @@ struct BoardView: View {
     }
 
     private var rightZone: some View {
-        let layout = LayoutMetrics(
-            availableWidth: czSize.width,
-            availableHeight: czSize.height,
-            cfg: cfg
-        )
-        let hexWidth = max(cfg.columns.hexTabMinWidth, layout.cardWidth * 0.62)
-        let hexHeight = cfg.columns.hexTabHeight
+//        let layout = LayoutMetrics(
+//            availableWidth: czSize.width,
+//            availableHeight: czSize.height,
+//            cfg: cfg
+//        )
+        //let hexWidth = max(cfg.columns.hexTabMinWidth, layout.cardWidth * 0.62)
+        //let hexHeight = cfg.columns.hexTabHeight
         let (sum, _) = game.boardTotals()
 
         return VStack(alignment: .trailing, spacing: 10) {
