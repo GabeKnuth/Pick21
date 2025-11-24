@@ -20,5 +20,4 @@ After three rounds, the score is totaled, and you're free to play again.
 
 This game has no ads, does not collect any information, and is made available free of charge simply because I wanted it available to the world. I wanted this game to exist, pure and simple.
 
-For questions or support, please contact me directly: gabe@gabeknuth.com
-
+For more information, including support contacts, visit: https://gabeknuth.com/projects/pick21.html
