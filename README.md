@@ -1,1 +1,1 @@
-Pick21 is a clone of the Run21 game from Merit MegaTouch bar top games
+Pick21 is a Blackjack solitaire game similar to those found on MegaTouch bar top games that are no longer manufactured.
