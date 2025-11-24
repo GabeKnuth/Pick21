@@ -23,3 +23,4 @@ Package.resolved
 *.ipa
 *.dSYM.zip
 *.dSYM
+.DS_Store
