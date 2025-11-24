@@ -43,22 +43,9 @@
 		00A161372EC6C3DE00272C0D /* LayoutConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutConfig.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		00D22EEE2ED0419000C3F51B /* Exceptions for "Pick 21 Solitaire" folder in "Pick 21 Solitaire" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				"Pick-21-Solitaire-Info.plist",
-			);
-			target = 008CADC72EC55881001BA388 /* Pick 21 Solitaire */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		008CADCA2EC55881001BA388 /* Pick 21 Solitaire */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				00D22EEE2ED0419000C3F51B /* Exceptions for "Pick 21 Solitaire" folder in "Pick 21 Solitaire" target */,
-			);
 			path = "Pick 21 Solitaire";
 			sourceTree = "<group>";
 		};
@@ -351,7 +338,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.01;
 				PRODUCT_BUNDLE_IDENTIFIER = "gabeknuth.Pick-21-Solitaire";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -407,7 +394,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.01;
 				PRODUCT_BUNDLE_IDENTIFIER = "gabeknuth.Pick-21-Solitaire";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
