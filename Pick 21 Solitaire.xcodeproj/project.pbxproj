@@ -21,6 +21,7 @@
 		008CADDB2EC558C9001BA388 /* GameState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 008CADDA2EC558C9001BA388 /* GameState.swift */; };
 		008CADDD2EC558D9001BA388 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 008CADDC2EC558D9001BA388 /* ContentView.swift */; };
 		008CADDF2EC55D5D001BA388 /* CardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 008CADDE2EC55D5D001BA388 /* CardView.swift */; };
+		0093C2322ED964C200B7658E /* InstructionsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0093C2312ED964C200B7658E /* InstructionsSheet.swift */; };
 		00A161382EC6C3DE00272C0D /* LayoutConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00A161372EC6C3DE00272C0D /* LayoutConfig.swift */; };
 /* End PBXBuildFile section */
 
@@ -40,6 +41,7 @@
 		008CADDA2EC558C9001BA388 /* GameState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameState.swift; sourceTree = "<group>"; };
 		008CADDC2EC558D9001BA388 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		008CADDE2EC55D5D001BA388 /* CardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardView.swift; sourceTree = "<group>"; };
+		0093C2312ED964C200B7658E /* InstructionsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstructionsSheet.swift; sourceTree = "<group>"; };
 		00A161372EC6C3DE00272C0D /* LayoutConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutConfig.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -82,6 +84,7 @@
 				006848FD2ECFD4750037D320 /* HighScoresView.swift */,
 				006848FF2ECFD47A0037D320 /* HighScoresSheet.swift */,
 				006849012ECFD47D0037D320 /* SettingsSheet.swift */,
+				0093C2312ED964C200B7658E /* InstructionsSheet.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -167,6 +170,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0093C2322ED964C200B7658E /* InstructionsSheet.swift in Sources */,
 				008CADDB2EC558C9001BA388 /* GameState.swift in Sources */,
 				008CADD72EC558BA001BA388 /* Pick21SolitaireApp.swift in Sources */,
 				00179B452ECEA436001B1941 /* TipStore.swift in Sources */,

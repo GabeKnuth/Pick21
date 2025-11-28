@@ -7,6 +7,7 @@ struct PreGameView: View {
 
     @State private var showingHighScores = false
     @State private var showingSettings = false
+    @State private var showingInstructions = false
 
     // Tip store for the “Buy me a coffee” IAP
     @StateObject private var tipStore = TipStore(productID: "Pick21BuyMeCoffee")
@@ -47,6 +48,25 @@ struct PreGameView: View {
                                 .foregroundStyle(.white)
                         }
                         .buttonStyle(.plain)
+
+                        Button {
+                            showingInstructions = true
+                        } label: {
+                            Label("How to Play", systemImage: "questionmark.circle.fill")
+                                .font(.system(size: 18, weight: .semibold, design: .rounded))
+                                .padding(.horizontal, 22)
+                                .padding(.vertical, 12)
+                                .frame(maxWidth: 420)
+                                .background(
+                                    Capsule().fill(Color.white.opacity(0.18))
+                                )
+                                .foregroundStyle(.white)
+                        }
+                        .buttonStyle(.plain)
+                        .sheet(isPresented: $showingInstructions) {
+                            InstructionsSheet()
+                                .presentationDetents([.medium, .large])
+                        }
 
                         Button {
                             showingHighScores = true
