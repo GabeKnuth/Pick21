@@ -27,7 +27,7 @@ struct PreGameView: View {
                             .scaledToFit()
                             .frame(height: min(80, h * 0.2))
                             .shadow(radius: 6, y: 3)
-                            .offset(y: 20)
+                            .offset(y: 30)
 
                     }
 
@@ -125,7 +125,7 @@ struct PreGameView: View {
                     .padding(.vertical, 8)
                     .background(RoundedRectangle(cornerRadius: 12).fill(Color.black.opacity(0.35)))
                     .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.2), lineWidth: 1))
-                    .offset(y: -8)
+                    .offset(y: -20)
 
                     Spacer()
                 }
@@ -144,7 +144,8 @@ struct PreGameView: View {
                         coffeeTipButton
                     }
                     .padding(.trailing, 35)
-                    .padding(.bottom, 16)
+                    .offset(y: 4)
+                    //.padding(.bottom, 16)
                 }
                 .frame(width: w, height: h)
             }
